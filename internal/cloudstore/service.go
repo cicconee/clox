@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -39,6 +42,16 @@ func (s *Service) SetupRoot() error {
 	return nil
 }
 
+type Dir struct {
+	ID        string
+	Owner     string
+	Name      string
+	Path      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	LastWrite time.Time
+}
+
 // NewDir creates a new directory for a user under the root directory.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
@@ -46,11 +59,8 @@ func (s *Service) SetupRoot() error {
 // directories.
 //
 // SetupRoot must be called before calling this method.
-func (s *Service) NewDir(ctx context.Context, name string, userID string) (string, error) {
+func (s *Service) NewDir(ctx context.Context, name string, userID string) (*Dir, error) {
 	// TODO:
-	//
-	// Generate a random ID that will be both the directory name on the file system and the
-	// primary key in the database.
 	//
 	// Create the directory under the root path with permissions 0700.
 	//
@@ -58,5 +68,10 @@ func (s *Service) NewDir(ctx context.Context, name string, userID string) (strin
 	//
 	// Return the directory ID or maybe create a directory struct and return that.
 
-	return "", nil
+	return &Dir{
+		ID:        uuid.NewString(),
+		Owner:     userID,
+		Path:      "/",
+		CreatedAt: time.Now().UTC(),
+	}, nil
 }
