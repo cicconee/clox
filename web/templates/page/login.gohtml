@@ -1,0 +1,22 @@
+{{define "login"}}
+    <div class="row justify-content-center mb-3">
+        <div class="col-lg-6 text-center">
+            <h2>Welcome to Clox.</h2>
+            <p class="fw-medium">The safe way to store your files in the cloud.</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card text-center">
+                <div class="card-header">Log in or sign up</div>
+                <div class="card-body">
+                    <a class="auth-btn" href="{{.Data.Google.URL}}">
+                        <img class="auth-logo" src="/web/static/image/login_google_icon.svg">
+                        {{.Data.Google.Value}}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}

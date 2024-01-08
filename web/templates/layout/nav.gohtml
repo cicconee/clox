@@ -1,0 +1,24 @@
+{{define "nav"}}
+    <nav class="navbar fixed-top navbar-expand-sm bg-body-tertiary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Clox</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {{range .NavBar}}
+                        <li class="nav-item">
+                            <a class="nav-link {{if eq .PageID $.PageID}}active{{end}}" href="{{.URL}}">{{.Value}}</a>
+                        </li>
+                    {{end}}
+                </ul>
+                {{if .Authenticated}}
+                    <form method="POST" action="{{.LinkLogout.URL}}">
+                        <button class="btn btn-primary" type="submit">{{.LinkLogout.Value}}</button>
+                    </form>
+                {{end}}
+            </div>
+        </div>
+    </nav>
+{{end}}
