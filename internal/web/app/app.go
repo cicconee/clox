@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/cicconee/clox/internal/cloudstore"
 	"github.com/cicconee/clox/internal/oauth2"
 	"github.com/cicconee/clox/internal/provider/google"
 	"github.com/cicconee/clox/internal/server"
@@ -29,6 +30,7 @@ type App struct {
 	Sessions     *session.Manager
 	Users        *user.Service
 	Tokens       *token.Service
+	Cloud        *cloudstore.Service
 
 	dashboard *handler.Dashboard
 	auth      *handler.Auth
@@ -42,13 +44,16 @@ type App struct {
 
 // init initializes and validates App. If any required fields in App are not defined an error is returned.
 func (a *App) init() error {
-	err := a.Template.Parse()
-	if err != nil {
+	if err := a.Template.Parse(); err != nil {
 		return fmt.Errorf("parsing templates: %w", err)
 	}
 
+	if err := a.Cloud.SetupRoot(); err != nil {
+		return fmt.Errorf("setting up root storage directory: %w", err)
+	}
+
 	googleAuthenticator := auth.NewAuthenticator(a.GoogleOAuth2, google.New(a.GoogleOAuth2), a.Users, a.Sessions)
-	registry := auth.NewRegistry(a.Users, a.Sessions)
+	registry := auth.NewRegistry(a.Users, a.Sessions, a.Cloud, a.Logger)
 
 	a.dashboard = handler.NewDashboard(a.Template, a.Logger)
 	a.auth = handler.NewAuth(registry, a.Cookies, a.Template, a.Logger)

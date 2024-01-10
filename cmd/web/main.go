@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/cicconee/clox/internal/cache"
+	"github.com/cicconee/clox/internal/cloudstore"
 	"github.com/cicconee/clox/internal/db"
 	"github.com/cicconee/clox/internal/jwt"
 	"github.com/cicconee/clox/internal/oauth2"
@@ -78,6 +79,7 @@ func Run(logger *log.Logger) error {
 		Sessions:     session.NewManager(cache),
 		Users:        user.NewService(user.NewRepo(database)),
 		Tokens:       token.NewService(jwts, cache, token.NewRepo(database)),
+		Cloud:        cloudstore.NewService(config.FileStorePath, cloudstore.NewStore(database), cloudstore.NewIO(&cloudstore.OSFileSystem{}), logger),
 	}
 
 	return webApp.Start()
