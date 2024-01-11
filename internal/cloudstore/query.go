@@ -147,3 +147,36 @@ func (q *Query) SelectDirectoryPath(ctx context.Context, directoryID string) ([]
 
 	return path, nil
 }
+
+type DirectoryRow struct {
+	ID        string
+	UserID    string
+	Name      string
+	ParentID  sql.NullString
+	CreatedAt time.Time
+	UpdatedAt sql.NullTime
+	LastWrite sql.NullTime
+}
+
+func (q *Query) SelectUserRootDirectory(ctx context.Context, userID string) (DirectoryRow, error) {
+	query := `SELECT id, user_id, name, parent_id, created_at, updated_at, last_write
+			  FROM directories
+			  WHERE parent_id IS NULL
+			  AND user_id = $1`
+
+	var r DirectoryRow
+	err := q.db.QueryRow(ctx, query, userID).Scan(
+		&r.ID,
+		&r.UserID,
+		&r.Name,
+		&r.ParentID,
+		&r.CreatedAt,
+		&r.UpdatedAt,
+		&r.LastWrite,
+	)
+	if err != nil {
+		return DirectoryRow{}, err
+	}
+
+	return r, nil
+}

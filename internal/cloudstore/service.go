@@ -63,12 +63,35 @@ func (s *Service) NewUserRootDir(ctx context.Context, userID string) (Dir, error
 }
 
 // NewUserDir creates a new directory for a user under a specific parent directory. The
-// file permissions are set to 0700.
+// file permissions are set to 0700. If parentID is empty, it will default to the users
+// root directory.
+//
+// NewUserDir validates that a users root directory has been created. If it does not exist
+// it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewUserDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+	// Validate users root storage exists. If it does not, create it.
+	rootRow, err := s.store.SelectUserRootDirectory(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rootDir, err := s.newUserDir(ctx, userID, "root", "")
+			if err != nil {
+				return Dir{}, app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("creating user root storage: %w", err),
+					SafeMessage: "There is a problem with your accounts root storage. Please contact us.",
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			rootRow.ID = rootDir.ID
+		} else {
+			return Dir{}, err
+		}
+	}
+
 	if parentID == "" {
-		// TODO: Get the id of the users root directory and use that as the parentID.
+		parentID = rootRow.ID
 	}
 
 	dir, err := s.newUserDir(ctx, userID, name, parentID)

@@ -13,10 +13,11 @@ var ErrCommitTx = errors.New("failed to commit transaction")
 
 type Store struct {
 	db app.DB
+	*Query
 }
 
 func NewStore(db app.DB) *Store {
-	return &Store{db: db}
+	return &Store{db: db, Query: NewQuery(db)}
 }
 
 // Tx begins a transaction and passes the transaction to txFunc. After txFunc
