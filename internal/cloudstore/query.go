@@ -3,8 +3,14 @@ package cloudstore
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
+
+	"github.com/lib/pq"
 )
+
+var ErrForeignKeyParentID = fmt.Errorf("%q foreign key violation", "parent_id")
 
 type DBTX interface {
 	QueryRow(ctx context.Context, query string, args ...any) *sql.Row
@@ -44,6 +50,15 @@ func (q *Query) InsertDirectory(ctx context.Context, c InsertDirectoryConfig) er
 		c.ParentID,
 		c.CreatedAt.UTC(),
 	)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			// Foreign key constraint violation on the parent_id column.
+			if pqErr.Code == "23503" && pqErr.Constraint == "directories_parent_id_fkey" {
+				return fmt.Errorf("%w: %v", ErrForeignKeyParentID, err)
+			}
+		}
+	}
 
 	return err
 }

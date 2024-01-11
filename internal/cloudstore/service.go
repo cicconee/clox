@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
 	"time"
 
+	"github.com/cicconee/clox/internal/app"
 	"github.com/cicconee/clox/internal/db"
 	"github.com/google/uuid"
 )
@@ -64,7 +67,22 @@ func (s *Service) NewUserRootDir(ctx context.Context, userID string) (Dir, error
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewUserDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
-	return s.newUserDir(ctx, userID, name, parentID)
+	if parentID == "" {
+		// TODO: Get the id of the users root directory and use that as the parentID.
+	}
+
+	dir, err := s.newUserDir(ctx, userID, name, parentID)
+	if err != nil {
+		if errors.Is(err, ErrForeignKeyParentID) {
+			return Dir{}, app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("parent directory does not exist [parent_id: %s]: %w", parentID, err),
+				SafeMessage: fmt.Sprintf("Directory %q does not exist", parentID),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+	}
+
+	return dir, nil
 }
 
 func (s *Service) newUserDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
