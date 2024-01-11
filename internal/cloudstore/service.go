@@ -54,23 +54,21 @@ type Dir struct {
 // persisted under this directory. Every users root directory will be named "root". The
 // file permissions are set to 0700.
 //
-// This is a shortcut for NewUserDir(ctx, userID, "root", "").
-//
 // The directory ID and name on the file system will be a randomly generated UUID.
 // The path "/" will correspond to this directory.
 func (s *Service) NewUserRootDir(ctx context.Context, userID string) (Dir, error) {
 	return s.newUserDir(ctx, userID, "root", "")
 }
 
-// NewUserDir creates a new directory for a user under a specific parent directory. The
+// NewDir creates a new directory for a user under a specific parent directory. The
 // file permissions are set to 0700. If parentID is empty, it will default to the users
 // root directory.
 //
-// NewUserDir validates that a users root directory has been created. If it does not exist
+// NewDir validates that a users root directory has been created. If it does not exist
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *Service) NewUserDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+func (s *Service) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	// Validate users root storage exists. If it does not, create it.
 	rootRow, err := s.store.SelectUserRootDirectory(ctx, userID)
 	if err != nil {
