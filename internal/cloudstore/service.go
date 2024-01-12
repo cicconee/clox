@@ -57,7 +57,7 @@ type Dir struct {
 // The directory ID and name on the file system will be a randomly generated UUID.
 // The path "/" will correspond to this directory.
 func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
-	return s.newDir(ctx, userID, "root", "")
+	return s.writeDir(ctx, userID, "root", "")
 }
 
 // NewDir creates a new directory for a user under a specific parent directory. The
@@ -73,7 +73,7 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 	rootRow, err := s.store.SelectUserRootDirectory(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			rootDir, err := s.newDir(ctx, userID, "root", "")
+			rootDir, err := s.writeDir(ctx, userID, "root", "")
 			if err != nil {
 				return Dir{}, app.Wrap(app.WrapParams{
 					Err:         fmt.Errorf("creating user root storage: %w", err),
@@ -92,7 +92,7 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 		parentID = rootRow.ID
 	}
 
-	dir, err := s.newDir(ctx, userID, name, parentID)
+	dir, err := s.writeDir(ctx, userID, name, parentID)
 	if err != nil {
 		if errors.Is(err, ErrForeignKeyParentID) {
 			return Dir{}, app.Wrap(app.WrapParams{
@@ -106,7 +106,7 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 	return dir, nil
 }
 
-func (s *Service) newDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+func (s *Service) writeDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	var dir DirIO
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
