@@ -88,6 +88,14 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 			})
 		}
 
+		if errors.Is(err, ErrUniqueNameParentID) {
+			return Dir{}, app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
+				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+
 		return Dir{}, err
 	}
 

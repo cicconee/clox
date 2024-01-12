@@ -11,6 +11,7 @@ import (
 )
 
 var ErrForeignKeyParentID = fmt.Errorf("%q foreign key violation", "parent_id")
+var ErrUniqueNameParentID = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_directory_name_parent", "name", "parent_id")
 
 type DBTX interface {
 	QueryRow(ctx context.Context, query string, args ...any) *sql.Row
@@ -57,10 +58,18 @@ func (q *Query) InsertDirectory(ctx context.Context, c InsertDirectoryConfig) er
 			if pqErr.Code == "23503" && pqErr.Constraint == "directories_parent_id_fkey" {
 				return fmt.Errorf("%w: %v", ErrForeignKeyParentID, err)
 			}
+
+			// Unique constraint violation on the parent_id and name. Another
+			// directory that is a child of parent_id is using this name.
+			if pqErr.Code == "23505" && pqErr.Constraint == "unique_directory_name_parent" {
+				return fmt.Errorf("%w: %v", ErrUniqueNameParentID, err)
+			}
 		}
+
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // InsertSelfPath inserts the 0th path into the paths table. This row holds
