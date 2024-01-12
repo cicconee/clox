@@ -7,8 +7,6 @@ import (
 	"io/fs"
 	"strings"
 	"time"
-
-	"github.com/cicconee/clox/internal/db"
 )
 
 type DirIO struct {
@@ -122,14 +120,6 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		FSPath:    fsPath,
 		UserPath:  userPath,
 	}, nil
-}
-
-func rollback(tx *db.Tx, err error) error {
-	if rbErr := tx.Rollback(); rbErr != nil {
-		return fmt.Errorf("err: %w, rbErr: %v", err, rbErr)
-	}
-
-	return err
 }
 
 // RemoveFSDir accepts the path to a directory and removes it from the file system.
