@@ -87,6 +87,8 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 				StatusCode:  http.StatusBadRequest,
 			})
 		}
+
+		return Dir{}, err
 	}
 
 	return dir, nil
