@@ -47,7 +47,7 @@ func (r *Registry) Register(ctx context.Context, session session.User) error {
 		return fmt.Errorf("setting user session: %w", err)
 	}
 
-	dir, err := r.cloud.NewUserRootDir(ctx, user.ID)
+	dir, err := r.cloud.NewUserDir(ctx, user.ID)
 	if err != nil {
 		r.log.Printf("[ERROR] Creating root storage [user: %s]: %v\n", user.ID, err)
 	} else {

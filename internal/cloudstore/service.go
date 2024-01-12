@@ -50,13 +50,13 @@ type Dir struct {
 	LastWrite time.Time
 }
 
-// NewUserRootDir creates a new root directory for a user. All sub directories will be
+// NewUserDir creates a new root directory for a user. All sub directories will be
 // persisted under this directory. Every users root directory will be named "root". The
 // file permissions are set to 0700.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 // The path "/" will correspond to this directory.
-func (s *Service) NewUserRootDir(ctx context.Context, userID string) (Dir, error) {
+func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 	return s.newDir(ctx, userID, "root", "")
 }
 
