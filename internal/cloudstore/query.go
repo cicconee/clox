@@ -162,6 +162,7 @@ func (q *Query) SelectUserRootDirectory(ctx context.Context, userID string) (Dir
 	query := `SELECT id, user_id, name, parent_id, created_at, updated_at, last_write
 			  FROM directories
 			  WHERE parent_id IS NULL
+			  AND name = 'root'
 			  AND user_id = $1`
 
 	var r DirectoryRow
