@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cicconee/clox/internal/app"
@@ -58,6 +60,68 @@ type Dir struct {
 // The path "/" will correspond to this directory.
 func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 	return s.writeDir(ctx, userID, "root", "")
+}
+
+// NewDirPath creates a new directory for a user under the provided path. The file
+// permissions are set to 0700. The path is cleaned using the filepath.Clean func.
+// An empty path will default to the users root directory.
+//
+// NewDirPath validates that a users root directory has been created. If it does not exist
+// it will create it.
+//
+// The directory ID and name on the file system will be a randomly generated UUID.
+func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+	// Clean and parse the path.
+	fp := filepath.Clean(pathStr)
+	var p string
+	if fp == "." || fp == "/" {
+		p = "root"
+	} else if fp[0] == '/' {
+		p = "root" + fp
+	} else {
+		p = "root/" + fp
+	}
+	path := strings.Split(p, "/")
+
+	// Path will always start with root/ so get validate and get the root directory.
+	root, err := s.ValidateUserDir(ctx, userID)
+	if err != nil {
+		return Dir{}, err
+	}
+
+	parentID := root.ID
+	for i := 1; i < len(path); i++ {
+		pName := path[i]
+		dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, parentID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return Dir{}, app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
+					SafeMessage: fmt.Sprintf("Directory %q does not exist", pName),
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			return Dir{}, err
+		}
+
+		parentID = dir.ID
+	}
+
+	dir, err := s.writeDir(ctx, userID, name, parentID)
+	if err != nil {
+		if errors.Is(err, ErrUniqueNameParentID) {
+			return Dir{}, app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
+				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+
+		return Dir{}, err
+	}
+
+	return dir, nil
 }
 
 // NewDir creates a new directory for a user under a specific parent directory. The
