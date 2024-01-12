@@ -10,8 +10,11 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrForeignKeyParentID = fmt.Errorf("%q foreign key violation", "parent_id")
-var ErrUniqueNameParentID = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_directory_name_parent", "name", "parent_id")
+var (
+	ErrForeignKeyParentID = fmt.Errorf("%q foreign key violation", "parent_id")
+	ErrUniqueNameParentID = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_directory_name_parent", "name", "parent_id")
+	ErrUniqueUserRoot     = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_user_root_directory", "user_id", "name")
+)
 
 type DBTX interface {
 	QueryRow(ctx context.Context, query string, args ...any) *sql.Row
@@ -63,6 +66,12 @@ func (q *Query) InsertDirectory(ctx context.Context, c InsertDirectoryConfig) er
 			// directory that is a child of parent_id is using this name.
 			if pqErr.Code == "23505" && pqErr.Constraint == "unique_directory_name_parent" {
 				return fmt.Errorf("%w: %v", ErrUniqueNameParentID, err)
+			}
+
+			// Unique constraint violation on the user_id and name where parent_id
+			// is null. Another directory was already created for the users root storage.
+			if pqErr.Code == "23505" && pqErr.Constraint == "unique_user_root_directory" {
+				return fmt.Errorf("%w: %v", ErrUniqueUserRoot, err)
 			}
 		}
 
