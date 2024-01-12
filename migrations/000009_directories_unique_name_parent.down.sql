@@ -1,0 +1,2 @@
+ALTER TABLE directories
+DROP CONSTRAINT unique_directory_name_parent;
