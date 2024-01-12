@@ -102,6 +102,13 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 	return dir, nil
 }
 
+// writeDir writes and returns a user directory. The location of the directory is defined by
+// the parentID. Directories will be a direct child of the parent.
+//
+// This Service's io is used to persist the directory to the file system, and store the
+// information in the database. The operation is wrapped in a database transaction. If
+// commiting the transaction fails, it will attempt to delete the directory from the file
+// system.
 func (s *Service) writeDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	var dir DirIO
 
