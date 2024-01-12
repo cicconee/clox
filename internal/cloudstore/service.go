@@ -69,27 +69,13 @@ func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
-	// Validate users root storage exists. If it does not, create it.
-	rootRow, err := s.store.SelectUserRootDirectory(ctx, userID)
+	root, err := s.ValidateUserDir(ctx, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			rootDir, err := s.writeDir(ctx, userID, "root", "")
-			if err != nil {
-				return Dir{}, app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("creating user root storage: %w", err),
-					SafeMessage: "There is a problem with your accounts root storage. Please contact us.",
-					StatusCode:  http.StatusBadRequest,
-				})
-			}
-
-			rootRow.ID = rootDir.ID
-		} else {
-			return Dir{}, err
-		}
+		return Dir{}, err
 	}
 
 	if parentID == "" {
-		parentID = rootRow.ID
+		parentID = root.ID
 	}
 
 	dir, err := s.writeDir(ctx, userID, name, parentID)
@@ -158,4 +144,41 @@ func (s *Service) RemoveDir(ctx context.Context, fsPath string) {
 	if err != nil {
 		s.log.Printf("[ERROR] Removing directory [path: %s]: %v\n", fsPath, err)
 	}
+}
+
+// ValidateUserDir validates that a root directory exists for the user. If it does
+// not exist, a root directory will be created for the user. The root directory is
+// returned.
+//
+// If a root directory exists and cannot be created, there is a serious problem with
+// the account and/or server. A app.WrappedSafeError will be returned with a message
+// stating they need to contact support.
+func (s *Service) ValidateUserDir(ctx context.Context, userID string) (Dir, error) {
+	row, err := s.store.SelectUserRootDirectory(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rootDir, err := s.writeDir(ctx, userID, "root", "")
+			if err != nil {
+				return Dir{}, app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("creating users root directory: %w", err),
+					SafeMessage: "There is a problem with your accounts root storage. Please contact us.",
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			return rootDir, nil
+		}
+
+		return Dir{}, err
+	}
+
+	return Dir{
+		ID:        row.ID,
+		Owner:     row.UserID,
+		Name:      row.Name,
+		Path:      "/",
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt.Time,
+		LastWrite: row.LastWrite.Time,
+	}, nil
 }
