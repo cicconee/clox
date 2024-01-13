@@ -71,51 +71,39 @@ func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
-	if name == "" {
-		return Dir{}, app.Wrap(app.WrapParams{
-			Err:         errors.New("empty directory name"),
-			SafeMessage: "Directory name cannot be empty",
-			StatusCode:  http.StatusBadRequest,
-		})
-	}
+	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
+		fp := filepath.Clean(pathStr)
+		var p string
+		if fp == "." || fp == "/" {
+			p = "root"
+		} else if fp[0] == '/' {
+			p = "root" + fp
+		} else {
+			p = "root/" + fp
+		}
+		path := strings.Split(p, "/")
 
-	root, err := s.ValidateUserDir(ctx, userID)
-	if err != nil {
-		return Dir{}, err
-	}
+		parentID := rootID
+		for i := 1; i < len(path); i++ {
+			pName := path[i]
+			dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, parentID)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return "", app.Wrap(app.WrapParams{
+						Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
+						SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
+						StatusCode:  http.StatusBadRequest,
+					})
+				}
 
-	// Clean and parse the path.
-	fp := filepath.Clean(pathStr)
-	var p string
-	if fp == "." || fp == "/" {
-		p = "root"
-	} else if fp[0] == '/' {
-		p = "root" + fp
-	} else {
-		p = "root/" + fp
-	}
-	path := strings.Split(p, "/")
-
-	parentID := root.ID
-	for i := 1; i < len(path); i++ {
-		pName := path[i]
-		dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, parentID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return Dir{}, app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
-					SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
-					StatusCode:  http.StatusBadRequest,
-				})
+				return "", err
 			}
 
-			return Dir{}, err
+			parentID = dir.ID
 		}
 
-		parentID = dir.ID
-	}
-
-	return s.writeDir(ctx, userID, name, parentID)
+		return parentID, nil
+	})
 }
 
 // NewDir creates a new directory for a user under a specific parent directory. The
@@ -127,6 +115,23 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
+		if parentID == "" {
+			return rootID, nil
+		}
+
+		return parentID, nil
+	})
+}
+
+// newDir creates a new directory with the given name. The root directory is validated
+// and then passes the root directory ID to the parentFunc. This function should return
+// the ID of the parent directory that the new directory will be written under.
+//
+// If parentFunc returns an error, newDir will not modify it and return it as is.
+//
+// If name is empty an error is returned.
+func (s *Service) newDir(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
 	if name == "" {
 		return Dir{}, app.Wrap(app.WrapParams{
 			Err:         errors.New("empty directory name"),
@@ -140,8 +145,9 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 		return Dir{}, err
 	}
 
-	if parentID == "" {
-		parentID = root.ID
+	parentID, err := parentFunc(root.ID)
+	if err != nil {
+		return Dir{}, err
 	}
 
 	return s.writeDir(ctx, userID, name, parentID)
