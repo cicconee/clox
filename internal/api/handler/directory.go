@@ -75,34 +75,9 @@ func marshalNewDirResponse(dir cloudstore.Dir) ([]byte, error) {
 // request context, use auth.SetUserIDContext.
 func (d *Directory) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserIDContext(r.Context())
-		parentID := chi.URLParam(r, "id")
-
-		request, err := parseNewDirRequest(r)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-		defer r.Body.Close()
-
-		dir, err := d.cloud.NewDir(r.Context(), userID, request.Name, parentID)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		resp, err := marshalNewDirResponse(dir)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
+			return d.cloud.NewDir(r.Context(), userID, request.Name, chi.URLParam(r, "id"))
+		})
 	}
 }
 
@@ -115,33 +90,42 @@ func (d *Directory) New() http.HandlerFunc {
 // ID in the request context, use auth.SetUserIDContext.
 func (d *Directory) NewPath() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserIDContext(r.Context())
-		path := r.URL.Query().Get("path")
-
-		request, err := parseNewDirRequest(r)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-		defer r.Body.Close()
-
-		dir, err := d.cloud.NewDirPath(r.Context(), userID, request.Name, path)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		resp, err := marshalNewDirResponse(dir)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
+			return d.cloud.NewDirPath(r.Context(), userID, request.Name, r.URL.Query().Get("path"))
+		})
 	}
+}
+
+// new is a modified http handler for creating a new directory. The function,
+// newDirFunc, will be passed the user ID of the user making the request and
+// the request body parsed as a newDirRequest. newDirFunc should create a new
+// directory and return it.
+func (d *Directory) new(w http.ResponseWriter, r *http.Request, newDirFunc func(string, newDirRequest) (cloudstore.Dir, error)) {
+	userID := auth.GetUserIDContext(r.Context())
+
+	request, err := parseNewDirRequest(r)
+	if err != nil {
+		app.WriteJSONError(w, err)
+		d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
+		return
+	}
+	defer r.Body.Close()
+
+	dir, err := newDirFunc(userID, request)
+	if err != nil {
+		app.WriteJSONError(w, err)
+		d.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
+		return
+	}
+
+	resp, err := marshalNewDirResponse(dir)
+	if err != nil {
+		app.WriteJSONError(w, err)
+		d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
