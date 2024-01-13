@@ -21,26 +21,34 @@ func NewDirectory(cloud *cloudstore.Service, log *log.Logger) *Directory {
 	return &Directory{cloud: cloud, log: log}
 }
 
+// The request body when creating a new directory.
+type newDirRequest struct {
+	Name string `json:"name"`
+}
+
+// The response body when creating a new directory.
+type newDirResponse struct {
+	ID        string    `json:"id"`
+	OwnerID   string    `json:"owner_id"`
+	DirName   string    `json:"directory_name"`
+	DirPath   string    `json:"directory_path"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	LastWrite time.Time `json:"last_write"`
+}
+
+// New returns a http.HandlerFunc that handles creating a new directory when
+// the directories parent ID is apart of the URL path. The name of the directory
+// should be specified in a json request body.
+//
+// New expects the user ID to be in the request context. To set the user ID in the
+// request context, use auth.SetUserIDContext.
 func (d *Directory) New() http.HandlerFunc {
-	type requestBody struct {
-		Name string `json:"name"`
-	}
-
-	type response struct {
-		ID        string    `json:"id"`
-		OwnerID   string    `json:"owner_id"`
-		DirName   string    `json:"directory_name"`
-		DirPath   string    `json:"directory_path"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		LastWrite time.Time `json:"last_write"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.GetUserIDContext(r.Context())
 		parentID := chi.URLParam(r, "id")
 
-		var request requestBody
+		var request newDirRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			app.WriteJSONError(w, app.Wrap(app.WrapParams{
 				Err:         err,
@@ -59,7 +67,7 @@ func (d *Directory) New() http.HandlerFunc {
 			return
 		}
 
-		resp, err := json.Marshal(&response{
+		resp, err := json.Marshal(&newDirResponse{
 			ID:        dir.ID,
 			OwnerID:   dir.Owner,
 			DirName:   dir.Name,
@@ -80,26 +88,19 @@ func (d *Directory) New() http.HandlerFunc {
 	}
 }
 
+// NewPath returns a http.HandlerFunc that handles creating a new directory
+// when the directories path is specified as a URL query parameter with the
+// key "path". The name of the directory should be specified in a json request
+// body.
+//
+// NewPath expects the user ID to be in the request context. To set the user
+// ID in the request context, use auth.SetUserIDContext.
 func (d *Directory) NewPath() http.HandlerFunc {
-	type requestBody struct {
-		Name string `json:"name"`
-	}
-
-	type response struct {
-		ID        string    `json:"id"`
-		OwnerID   string    `json:"owner_id"`
-		DirName   string    `json:"directory_name"`
-		DirPath   string    `json:"directory_path"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		LastWrite time.Time `json:"last_write"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.GetUserIDContext(r.Context())
 		path := r.URL.Query().Get("path")
 
-		var request requestBody
+		var request newDirRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			app.WriteJSONError(w, app.Wrap(app.WrapParams{
 				Err:         err,
@@ -118,7 +119,7 @@ func (d *Directory) NewPath() http.HandlerFunc {
 			return
 		}
 
-		resp, err := json.Marshal(&response{
+		resp, err := json.Marshal(&newDirResponse{
 			ID:        dir.ID,
 			OwnerID:   dir.Owner,
 			DirName:   dir.Name,
