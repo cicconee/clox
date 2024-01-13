@@ -22,6 +22,7 @@ type App struct {
 	Cloud  *cloudstore.Service
 
 	users *handler.User
+	cloud *handler.Cloud
 
 	tokenMiddleware *middleware.Token
 }
@@ -35,6 +36,7 @@ func (a *App) init() error {
 	authenticator := auth.NewAuthenticator(a.Tokens, a.Users)
 
 	a.users = handler.NewUser(a.Users, a.Logger)
+	a.cloud = handler.NewCloud(a.Cloud, a.Logger)
 
 	a.tokenMiddleware = middleware.NewToken(authenticator, a.Logger)
 
@@ -44,6 +46,7 @@ func (a *App) init() error {
 // setRoutes sets all the route handlers for App.
 func (a *App) setRoutes() {
 	a.Server.SetRoute("GET", "/me", a.users.Me(), a.tokenMiddleware.Validate)
+	a.Server.SetRoute("POST", "/api/dir/{id}", a.cloud.NewDir(), a.tokenMiddleware.Validate)
 }
 
 // Start will initialize, set all the routes, and start App.
