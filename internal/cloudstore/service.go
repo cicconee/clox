@@ -71,6 +71,11 @@ func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+	root, err := s.ValidateUserDir(ctx, userID)
+	if err != nil {
+		return Dir{}, err
+	}
+
 	// Clean and parse the path.
 	fp := filepath.Clean(pathStr)
 	var p string
@@ -82,12 +87,6 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 		p = "root/" + fp
 	}
 	path := strings.Split(p, "/")
-
-	// Path will always start with root/ so get validate and get the root directory.
-	root, err := s.ValidateUserDir(ctx, userID)
-	if err != nil {
-		return Dir{}, err
-	}
 
 	parentID := root.ID
 	for i := 1; i < len(path); i++ {
