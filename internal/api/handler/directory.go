@@ -53,6 +53,20 @@ type newDirResponse struct {
 	LastWrite time.Time `json:"last_write"`
 }
 
+// marshalNewDirResponse converts a cloudstore.Dir to a newDirResponse
+// and marshals it to json byte slice.
+func marshalNewDirResponse(dir cloudstore.Dir) ([]byte, error) {
+	return json.Marshal(&newDirResponse{
+		ID:        dir.ID,
+		OwnerID:   dir.Owner,
+		DirName:   dir.Name,
+		DirPath:   dir.Path,
+		CreatedAt: dir.CreatedAt,
+		UpdatedAt: dir.UpdatedAt,
+		LastWrite: dir.LastWrite,
+	})
+}
+
 // New returns a http.HandlerFunc that handles creating a new directory when
 // the directories parent ID is apart of the URL path. The name of the directory
 // should be specified in a json request body.
@@ -79,15 +93,7 @@ func (d *Directory) New() http.HandlerFunc {
 			return
 		}
 
-		resp, err := json.Marshal(&newDirResponse{
-			ID:        dir.ID,
-			OwnerID:   dir.Owner,
-			DirName:   dir.Name,
-			DirPath:   dir.Path,
-			CreatedAt: dir.CreatedAt,
-			UpdatedAt: dir.UpdatedAt,
-			LastWrite: dir.LastWrite,
-		})
+		resp, err := marshalNewDirResponse(dir)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
@@ -127,15 +133,7 @@ func (d *Directory) NewPath() http.HandlerFunc {
 			return
 		}
 
-		resp, err := json.Marshal(&newDirResponse{
-			ID:        dir.ID,
-			OwnerID:   dir.Owner,
-			DirName:   dir.Name,
-			DirPath:   dir.Path,
-			CreatedAt: dir.CreatedAt,
-			UpdatedAt: dir.UpdatedAt,
-			LastWrite: dir.LastWrite,
-		})
+		resp, err := marshalNewDirResponse(dir)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
