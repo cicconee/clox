@@ -80,7 +80,7 @@ func (d *Directory) New() http.HandlerFunc {
 	}
 }
 
-func (d *Directory) NewDirPath() http.HandlerFunc {
+func (d *Directory) NewPath() http.HandlerFunc {
 	type requestBody struct {
 		Name string `json:"name"`
 	}

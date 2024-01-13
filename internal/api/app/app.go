@@ -47,7 +47,7 @@ func (a *App) init() error {
 func (a *App) setRoutes() {
 	a.Server.SetRoute("GET", "/me", a.users.Me(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/dir/{id}", a.directories.New(), a.tokenMiddleware.Validate)
-	a.Server.SetRoute("POST", "/api/dir", a.directories.NewDirPath(), a.tokenMiddleware.Validate)
+	a.Server.SetRoute("POST", "/api/dir", a.directories.NewPath(), a.tokenMiddleware.Validate)
 }
 
 // Start will initialize, set all the routes, and start App.
