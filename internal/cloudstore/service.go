@@ -104,7 +104,7 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 			if errors.Is(err, sql.ErrNoRows) {
 				return Dir{}, app.Wrap(app.WrapParams{
 					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
-					SafeMessage: fmt.Sprintf("Directory %q does not exist", pName),
+					SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
 					StatusCode:  http.StatusBadRequest,
 				})
 			}
