@@ -71,6 +71,14 @@ func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+	if name == "" {
+		return Dir{}, app.Wrap(app.WrapParams{
+			Err:         errors.New("empty directory name"),
+			SafeMessage: "Directory name cannot be empty",
+			StatusCode:  http.StatusBadRequest,
+		})
+	}
+
 	root, err := s.ValidateUserDir(ctx, userID)
 	if err != nil {
 		return Dir{}, err
@@ -119,6 +127,14 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *Service) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+	if name == "" {
+		return Dir{}, app.Wrap(app.WrapParams{
+			Err:         errors.New("empty directory name"),
+			SafeMessage: "Directory name cannot be empty",
+			StatusCode:  http.StatusBadRequest,
+		})
+	}
+
 	root, err := s.ValidateUserDir(ctx, userID)
 	if err != nil {
 		return Dir{}, err
