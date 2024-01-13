@@ -46,7 +46,7 @@ func (a *App) init() error {
 // setRoutes sets all the route handlers for App.
 func (a *App) setRoutes() {
 	a.Server.SetRoute("GET", "/me", a.users.Me(), a.tokenMiddleware.Validate)
-	a.Server.SetRoute("POST", "/api/dir/{id}", a.directories.NewDir(), a.tokenMiddleware.Validate)
+	a.Server.SetRoute("POST", "/api/dir/{id}", a.directories.New(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/dir", a.directories.NewDirPath(), a.tokenMiddleware.Validate)
 }
 

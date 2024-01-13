@@ -21,7 +21,7 @@ func NewDirectory(cloud *cloudstore.Service, log *log.Logger) *Directory {
 	return &Directory{cloud: cloud, log: log}
 }
 
-func (d *Directory) NewDir() http.HandlerFunc {
+func (d *Directory) New() http.HandlerFunc {
 	type requestBody struct {
 		Name string `json:"name"`
 	}
