@@ -26,6 +26,22 @@ type newDirRequest struct {
 	Name string `json:"name"`
 }
 
+// parseNewDirRequest parses the request body into a newDirRequest.
+//
+// parseNewDirRequest does not close r.Body.
+func parseNewDirRequest(r *http.Request) (newDirRequest, error) {
+	var request newDirRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return newDirRequest{}, app.Wrap(app.WrapParams{
+			Err:         err,
+			SafeMessage: "Invalid request body",
+			StatusCode:  http.StatusBadRequest,
+		})
+	}
+
+	return request, nil
+}
+
 // The response body when creating a new directory.
 type newDirResponse struct {
 	ID        string    `json:"id"`
@@ -48,13 +64,9 @@ func (d *Directory) New() http.HandlerFunc {
 		userID := auth.GetUserIDContext(r.Context())
 		parentID := chi.URLParam(r, "id")
 
-		var request newDirRequest
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			app.WriteJSONError(w, app.Wrap(app.WrapParams{
-				Err:         err,
-				SafeMessage: "Invalid request body",
-				StatusCode:  http.StatusBadRequest,
-			}))
+		request, err := parseNewDirRequest(r)
+		if err != nil {
+			app.WriteJSONError(w, err)
 			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
@@ -100,13 +112,9 @@ func (d *Directory) NewPath() http.HandlerFunc {
 		userID := auth.GetUserIDContext(r.Context())
 		path := r.URL.Query().Get("path")
 
-		var request newDirRequest
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			app.WriteJSONError(w, app.Wrap(app.WrapParams{
-				Err:         err,
-				SafeMessage: "Invalid request body",
-				StatusCode:  http.StatusBadRequest,
-			}))
+		request, err := parseNewDirRequest(r)
+		if err != nil {
+			app.WriteJSONError(w, err)
 			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
