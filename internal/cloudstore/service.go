@@ -160,6 +160,14 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 			})
 		}
 
+		if errors.Is(err, ErrSyntaxParentID) {
+			return Dir{}, app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("invalid parent directory [parent_id: %s]: %w", parentID, err),
+				SafeMessage: fmt.Sprintf("'%s' is a invalid parent ID", parentID),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+
 		return Dir{}, err
 	}
 
