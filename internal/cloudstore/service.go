@@ -108,20 +108,7 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 		parentID = dir.ID
 	}
 
-	dir, err := s.writeDir(ctx, userID, name, parentID)
-	if err != nil {
-		if errors.Is(err, ErrUniqueNameParentID) {
-			return Dir{}, app.Wrap(app.WrapParams{
-				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
-				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
-				StatusCode:  http.StatusBadRequest,
-			})
-		}
-
-		return Dir{}, err
-	}
-
-	return dir, nil
+	return s.writeDir(ctx, userID, name, parentID)
 }
 
 // NewDir creates a new directory for a user under a specific parent directory. The
@@ -142,36 +129,7 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 		parentID = root.ID
 	}
 
-	dir, err := s.writeDir(ctx, userID, name, parentID)
-	if err != nil {
-		if errors.Is(err, ErrForeignKeyParentID) {
-			return Dir{}, app.Wrap(app.WrapParams{
-				Err:         fmt.Errorf("parent directory does not exist [parent_id: %s]: %w", parentID, err),
-				SafeMessage: fmt.Sprintf("Directory %q does not exist", parentID),
-				StatusCode:  http.StatusBadRequest,
-			})
-		}
-
-		if errors.Is(err, ErrUniqueNameParentID) {
-			return Dir{}, app.Wrap(app.WrapParams{
-				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
-				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
-				StatusCode:  http.StatusBadRequest,
-			})
-		}
-
-		if errors.Is(err, ErrSyntaxParentID) {
-			return Dir{}, app.Wrap(app.WrapParams{
-				Err:         fmt.Errorf("invalid parent directory [parent_id: %s]: %w", parentID, err),
-				SafeMessage: fmt.Sprintf("'%s' is a invalid parent ID", parentID),
-				StatusCode:  http.StatusBadRequest,
-			})
-		}
-
-		return Dir{}, err
-	}
-
-	return dir, nil
+	return s.writeDir(ctx, userID, name, parentID)
 }
 
 // writeDir writes and returns a user directory. The location of the directory is defined by
@@ -202,9 +160,28 @@ func (s *Service) writeDir(ctx context.Context, userID string, name string, pare
 		return nil
 	})
 	if err != nil {
-		// At this point the file was written to disk, so the application is in a inconsistent state.
-		// Remove the directory since the information failed to be commited to the database.
-		if errors.Is(err, ErrCommitTx) {
+		switch {
+		case errors.Is(err, ErrForeignKeyParentID):
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("parent directory does not exist [parent_id: %s]: %w", parentID, err),
+				SafeMessage: fmt.Sprintf("Directory %q does not exist", parentID),
+				StatusCode:  http.StatusBadRequest,
+			})
+		case errors.Is(err, ErrUniqueNameParentID):
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
+				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
+				StatusCode:  http.StatusBadRequest,
+			})
+		case errors.Is(err, ErrSyntaxParentID):
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("invalid parent directory [parent_id: %s]: %w", parentID, err),
+				SafeMessage: fmt.Sprintf("'%s' is a invalid parent ID", parentID),
+				StatusCode:  http.StatusBadRequest,
+			})
+		case errors.Is(err, ErrCommitTx):
+			// At this point the file was written to disk, so the application is in a inconsistent state.
+			// Remove the directory since the information failed to be commited to the database.
 			go s.RemoveDir(ctx, dir.FSPath)
 		}
 
