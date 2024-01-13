@@ -12,16 +12,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Cloud struct {
+type Directory struct {
 	cloud *cloudstore.Service
 	log   *log.Logger
 }
 
-func NewCloud(cloud *cloudstore.Service, log *log.Logger) *Cloud {
-	return &Cloud{cloud: cloud, log: log}
+func NewDirectory(cloud *cloudstore.Service, log *log.Logger) *Directory {
+	return &Directory{cloud: cloud, log: log}
 }
 
-func (c *Cloud) NewDir() http.HandlerFunc {
+func (d *Directory) NewDir() http.HandlerFunc {
 	type requestBody struct {
 		Name string `json:"name"`
 	}
@@ -47,15 +47,15 @@ func (c *Cloud) NewDir() http.HandlerFunc {
 				SafeMessage: "Invalid request body",
 				StatusCode:  http.StatusBadRequest,
 			}))
-			c.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 		defer r.Body.Close()
 
-		dir, err := c.cloud.NewDir(r.Context(), userID, request.Name, parentID)
+		dir, err := d.cloud.NewDir(r.Context(), userID, request.Name, parentID)
 		if err != nil {
 			app.WriteJSONError(w, err)
-			c.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 
@@ -70,7 +70,7 @@ func (c *Cloud) NewDir() http.HandlerFunc {
 		})
 		if err != nil {
 			app.WriteJSONError(w, err)
-			c.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 
@@ -80,7 +80,7 @@ func (c *Cloud) NewDir() http.HandlerFunc {
 	}
 }
 
-func (c *Cloud) NewDirPath() http.HandlerFunc {
+func (d *Directory) NewDirPath() http.HandlerFunc {
 	type requestBody struct {
 		Name string `json:"name"`
 	}
@@ -106,15 +106,15 @@ func (c *Cloud) NewDirPath() http.HandlerFunc {
 				SafeMessage: "Invalid request body",
 				StatusCode:  http.StatusBadRequest,
 			}))
-			c.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed to decode request body: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 		defer r.Body.Close()
 
-		dir, err := c.cloud.NewDirPath(r.Context(), userID, request.Name, path)
+		dir, err := d.cloud.NewDirPath(r.Context(), userID, request.Name, path)
 		if err != nil {
 			app.WriteJSONError(w, err)
-			c.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed creating directory: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 
@@ -129,7 +129,7 @@ func (c *Cloud) NewDirPath() http.HandlerFunc {
 		})
 		if err != nil {
 			app.WriteJSONError(w, err)
-			c.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
+			d.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
 			return
 		}
 
