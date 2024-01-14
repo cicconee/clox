@@ -60,6 +60,9 @@ type NewDirIO struct {
 	FSPerm    fs.FileMode
 }
 
+// NewDir writes a directory to the file system and persists its information
+// in the database. If the directory is a sub directory, all the ancesteral
+// paths are persisted. The directory is returned as a DirIO.
 func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 	err := q.InsertDirectory(ctx, InsertDirectoryConfig{
 		ID:        d.ID,
