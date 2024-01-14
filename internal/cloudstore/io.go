@@ -93,11 +93,6 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		return DirIO{}, err
 	}
 
-	fsPath := fmt.Sprintf("%s/%s", d.FSDir, strings.Join(idPath, "/"))
-	if err := io.fs.Mkdir(fsPath, d.FSPerm); err != nil {
-		return DirIO{}, fmt.Errorf("creating directory [%s]: %w", fsPath, err)
-	}
-
 	// Get the path the user will reference.
 	namePath, err := q.SelectDirectoryPath(ctx, d.ID)
 	if err != nil {
@@ -109,6 +104,12 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 	userPath = strings.TrimPrefix(userPath, "root")
 	if userPath == "" {
 		userPath = "/"
+	}
+
+	// Ensure writing the directory to the file system is the last operation.
+	fsPath := fmt.Sprintf("%s/%s", d.FSDir, strings.Join(idPath, "/"))
+	if err := io.fs.Mkdir(fsPath, d.FSPerm); err != nil {
+		return DirIO{}, fmt.Errorf("creating directory [%s]: %w", fsPath, err)
 	}
 
 	return DirIO{
