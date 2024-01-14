@@ -277,3 +277,27 @@ func (q *Query) SelectDirectoryByUserNameParent(ctx context.Context, userID stri
 
 	return r, nil
 }
+
+// SelectDirectoryByIDUser selects a row from the directories table by id and user_id.
+func (q *Query) SelectDirectoryByIDUser(ctx context.Context, id string, userID string) (DirectoryRow, error) {
+	query := `SELECT id, user_id, name, parent_id, created_at, updated_at, last_write
+			  FROM directories
+			  WHERE id = $1
+			  AND user_id = $2`
+
+	var r DirectoryRow
+	err := q.db.QueryRow(ctx, query, id, userID).Scan(
+		&r.ID,
+		&r.UserID,
+		&r.Name,
+		&r.ParentID,
+		&r.CreatedAt,
+		&r.UpdatedAt,
+		&r.LastWrite,
+	)
+	if err != nil {
+		return DirectoryRow{}, err
+	}
+
+	return r, nil
+}
