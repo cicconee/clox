@@ -23,6 +23,7 @@ type App struct {
 
 	users       *handler.User
 	directories *handler.Directory
+	files       *handler.File
 
 	tokenMiddleware *middleware.Token
 }
@@ -37,6 +38,7 @@ func (a *App) init() error {
 
 	a.users = handler.NewUser(a.Users, a.Logger)
 	a.directories = handler.NewDirectory(a.Cloud, a.Logger)
+	a.files = handler.NewFile(a.Cloud, a.Logger)
 
 	a.tokenMiddleware = middleware.NewToken(authenticator, a.Logger)
 
@@ -48,6 +50,7 @@ func (a *App) setRoutes() {
 	a.Server.SetRoute("GET", "/me", a.users.Me(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/dir/{id}", a.directories.New(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/dir", a.directories.NewPath(), a.tokenMiddleware.Validate)
+	a.Server.SetRoute("POST", "/api/upload/{id}", a.files.Upload(), a.tokenMiddleware.Validate)
 }
 
 // Start will initialize, set all the routes, and start App.
