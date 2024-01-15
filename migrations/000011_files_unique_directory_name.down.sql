@@ -1,0 +1,2 @@
+ALTER TABLE files
+DROP CONSTRAINT unique_file_directory_name;
