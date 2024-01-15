@@ -15,6 +15,7 @@ var (
 	ErrForeignKeyDirectoryID = fmt.Errorf("%q foreign key violation", "directory_id")
 	ErrUniqueNameParentID    = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_directory_name_parent", "name", "parent_id")
 	ErrUniqueUserRoot        = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_user_root_directory", "user_id", "name")
+	ErrUniqueDirectoryIDName = fmt.Errorf("%q [columns: %q, %q] unique constraint violation", "unique_file_directory_name", "directory_id", "name")
 	ErrSyntaxParentID        = fmt.Errorf("%q invalid input syntax", "parent_id")
 	ErrSyntaxDirectoryID     = fmt.Errorf("%q invalid input syntax", "directory_id")
 )
@@ -117,6 +118,12 @@ func (q *Query) InsertFile(ctx context.Context, c InsertFileConfig) error {
 			// Foreign key constraint violation on the directory_id column.
 			if pqErr.Code == "23503" && pqErr.Constraint == "files_directory_id_fkey" {
 				return fmt.Errorf("%w: %v", ErrForeignKeyDirectoryID, err)
+			}
+
+			// Unique constraint violation on the directory_id and name. Another
+			// file that is a child of directory_id is using this name.
+			if pqErr.Code == "23505" && pqErr.Constraint == "unique_file_directory_name" {
+				return fmt.Errorf("%w: %v", ErrUniqueDirectoryIDName, err)
 			}
 
 			// Invalid input syntax for the directory_id column. The file id
