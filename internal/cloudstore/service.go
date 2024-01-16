@@ -401,11 +401,10 @@ func (s *Service) writeFile(ctx context.Context, userID string, directoryID stri
 				SafeMessage: fmt.Sprintf("File '%s' already exists", header.Filename),
 				StatusCode:  http.StatusBadRequest,
 			})
+		case errors.Is(err, ErrCommitTx), errors.Is(err, ErrCopy):
+			// TODO: Delete the file from the file system.
 		}
-		// TODO:
-		// 	If error is a ErrCommitTx, a Write File Error,
-		// 	or Change Mode Error, delete the file from the
-		// 	file system.
+
 		return File{Name: header.Filename, Size: header.Size}, err
 	}
 
