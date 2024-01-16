@@ -24,6 +24,17 @@ func (fs *OSFileSystem) Mkdir(name string, perm fs.FileMode) error {
 	return os.Mkdir(name, perm)
 }
 
+// Create calls the os.OpenFile function.
+//
+// The file is created on the file system with the specified name and permissions.
+// Name is the full path to the file. The file is created with the os.O_WRONLY,
+// os.O_CREATE, and os.O_TRUNC flags. These flags open the file as write only,
+// creates the file if it does not exist, and if the file exists, truncate it to
+// zero.
+func (fs *OSFileSystem) Create(name string, perm fs.FileMode) (*os.File, error) {
+	return os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+}
+
 // RemoveAll calls the os.RemoveAll function.
 //
 // RemoveAll removes path and any children it contains. It removes everything

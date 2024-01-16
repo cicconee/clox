@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"mime/multipart"
-	"os"
 	"strings"
 	"time"
 )
@@ -213,7 +212,7 @@ func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error)
 	fsPath := fmt.Sprintf("%s/%s/%s", f.FSDir, strings.Join(dirIDPath, "/"), f.ID)
 
 	// Create the file and set the file permissions on the file system.
-	dst, err := os.OpenFile(fsPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.FSPerm) // TODO: Wrap this call in OSFileSystem.
+	dst, err := i.fs.Create(fsPath, f.FSPerm)
 	if err != nil {
 		return FileIO{}, err
 	}
