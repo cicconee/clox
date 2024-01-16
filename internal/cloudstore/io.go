@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
 	"io/fs"
 	"mime/multipart"
 	"strings"
@@ -174,7 +173,7 @@ type NewFileIO struct {
 
 // NewFile writes a file under a specified directory on the file system and
 // persists its information to the database. The file is returned as a FileIO.
-func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error) {
+func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error) {
 	file, err := f.Header.Open()
 	if err != nil {
 		return FileIO{}, err
@@ -212,16 +211,14 @@ func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error)
 	fsPath := fmt.Sprintf("%s/%s/%s", f.FSDir, strings.Join(dirIDPath, "/"), f.ID)
 
 	// Create the file and set the file permissions on the file system.
-	dst, err := i.fs.Create(fsPath, f.FSPerm)
+	dst, err := io.fs.Create(fsPath, f.FSPerm)
 	if err != nil {
 		return FileIO{}, err
 	}
 
 	// Write the file content to the file on the file system.
-	_, err = io.Copy(dst, file) // TODO: Wrap this call in OSFileSystem.
+	_, err = io.fs.Copy(dst, file)
 	if err != nil {
-		// TODO: Wrap in specific error signifying this error happened after
-		// the file was written to disk.
 		return FileIO{}, err
 	}
 	dst.Close()

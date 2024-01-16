@@ -1,11 +1,17 @@
 package cloudstore
 
 import (
+	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 )
 
-// OSFileSystem is a wrapper around the os package file system functions.
+// ErrCopy signals an error occured while copying data to an io.Writer.
+var ErrCopy = errors.New("failed to copy data")
+
+// OSFileSystem is a wrapper around the io and os package file system functions.
 type OSFileSystem struct{}
 
 // Set calls the os.Stat function.
@@ -33,6 +39,27 @@ func (fs *OSFileSystem) Mkdir(name string, perm fs.FileMode) error {
 // zero.
 func (fs *OSFileSystem) Create(name string, perm fs.FileMode) (*os.File, error) {
 	return os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+}
+
+// Copy calls the io.Copy function. If a error occurs, it will be a ErrCopy.
+//
+// Copy copies from src to dst until either EOF is reached on src or an error
+// occurs. It returns the number of bytes copied and the first error encountered
+// while copying, if any.
+//
+// A successful Copy returns err == nil, not err == EOF. Because Copy is defined
+// to read from src until EOF, it does not treat an EOF from Read as an error to
+// be reported.
+//
+// If src implements the WriterTo interface, the copy is implemented by calling
+// src.WriteTo(dst). Otherwise, if dst implements the ReaderFrom interface, the
+// copy is implemented by calling dst.ReadFrom(src).
+func (fs *OSFileSystem) Copy(dst io.Writer, src io.Reader) (int64, error) {
+	n, err := io.Copy(dst, src)
+	if err != nil {
+		err = fmt.Errorf("%w: %v", ErrCopy, err)
+	}
+	return n, err
 }
 
 // RemoveAll calls the os.RemoveAll function.
