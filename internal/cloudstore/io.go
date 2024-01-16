@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"io/fs"
+	"mime/multipart"
+	"os"
 	"strings"
 	"time"
 )
@@ -19,6 +22,17 @@ type DirIO struct {
 	LastWrite time.Time
 	FSPath    string
 	UserPath  string
+}
+
+type FileIO struct {
+	ID          string
+	UserID      string
+	DirectoryID string
+	Name        string
+	UploadedAt  time.Time
+	FSPath      string
+	UserPath    string
+	Size        int64
 }
 
 type IO struct {
@@ -147,4 +161,87 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 // All sub directories and files will be removed.
 func (io *IO) RemoveFSDir(fsPath string) error {
 	return io.fs.RemoveAll(fsPath)
+}
+
+type NewFileIO struct {
+	ID          string
+	UserID      string
+	DirectoryID string
+	UploadedAt  time.Time
+	Header      *multipart.FileHeader
+	FSDir       string
+	FSPerm      fs.FileMode
+}
+
+// NewFile writes a file under a specified directory on the file system and
+// persists its information to the database. The file is returned as a FileIO.
+func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error) {
+	file, err := f.Header.Open()
+	if err != nil {
+		return FileIO{}, err
+	}
+
+	err = q.InsertFile(ctx, InsertFileConfig{
+		ID:          f.ID,
+		UserID:      f.UserID,
+		DirectoryID: f.DirectoryID,
+		Name:        f.Header.Filename,
+		UploadedAt:  time.Now().UTC(),
+	})
+	if err != nil {
+		return FileIO{}, err
+	}
+
+	// Construct the path the user will reference.
+	dirNamePath, err := q.SelectDirectoryPath(ctx, f.DirectoryID)
+	if err != nil {
+		return FileIO{}, err
+	}
+	userPath := strings.Join(dirNamePath, "/")
+	userPath = strings.TrimPrefix(userPath, "root")
+	if userPath == "" {
+		userPath = "/" + f.Header.Filename
+	} else {
+		userPath += "/" + f.Header.Filename
+	}
+
+	// Construct the full file system path of the file.
+	dirIDPath, err := q.SelectDirectoryFSPath(ctx, f.DirectoryID)
+	if err != nil {
+		return FileIO{}, err
+	}
+	fsPath := fmt.Sprintf("%s/%s/%s", f.FSDir, strings.Join(dirIDPath, "/"), f.ID)
+
+	// Create the file on the file system.
+	dst, err := os.Create(fsPath) // TODO: Wrap this call in OSFileSystem.
+	if err != nil {
+		return FileIO{}, err
+	}
+
+	// Write the file content to the file on the file system.
+	_, err = io.Copy(dst, file) // TODO: Wrap this call in OSFileSystem.
+	if err != nil {
+		// TODO: Wrap in specific error signifying this error happened after
+		// the file was written to disk.
+		return FileIO{}, err
+	}
+	dst.Close()
+
+	err = os.Chmod(fsPath, f.FSPerm)
+	if err != nil {
+		// TODO: Wrap in specific error signifying this error happened after
+		// the file was written to disk.
+		return FileIO{}, err
+	}
+
+	return FileIO{
+		ID:          f.ID,
+		UserID:      f.UserID,
+		DirectoryID: f.DirectoryID,
+		Name:        f.Header.Filename,
+		UploadedAt:  f.UploadedAt.UTC(),
+		FSPath:      fsPath,
+		UserPath:    userPath,
+		Size:        f.Header.Size,
+	}, nil
 }

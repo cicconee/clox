@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -267,5 +268,153 @@ func (s *Service) ValidateUserDir(ctx context.Context, userID string) (Dir, erro
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt.Time,
 		LastWrite: row.LastWrite.Time,
+	}, nil
+}
+
+type File struct {
+	ID          string
+	DirectoryID string
+	Name        string
+	Path        string
+	Size        int64
+	UploadedAt  time.Time
+}
+
+// BatchSave is the result of saving a file when the files are being
+// written as a Batch. If an error occured while saving the file it
+// will be set in the Err field.
+//
+// Any BatchSave returned by a service function should always set the
+// File.Name and File.Size, regardless of an error.
+type BatchSave struct {
+	File
+	Err error
+}
+
+// Msg returns the status of this BatchSave as a user friendly message.
+//
+// This method is useful to add more context to a response when this
+// BatchSave represents a file that failed to be saved.
+func (b *BatchSave) Msg() string {
+	if b.Err != nil {
+		var wrapErr *app.WrappedSafeError
+		if errors.As(b.Err, &wrapErr) {
+			msg, _ := wrapErr.Safe()
+			return msg
+		}
+
+		return "Problem writing the file to the server"
+	}
+
+	if b.ID != "" {
+		return "Success"
+	}
+
+	return ""
+}
+
+// SaveFileBatch writes all the files for a user under the specified directory. The
+// file permissions are set to 0600. If directoryID is empty, it will default to the
+// users root directory. The file names persisted will be the FileName value of each
+// multipart.FileHeader.
+//
+// For each BatchSave that is returned, if an error occured while saving the file, it
+// will be set in the Err field. Every BatchSave will always have its Name and Size
+// fields set.
+//
+// SaveFileBatch validates that a users root directory has been created. If it does not
+// exist it will create it.
+//
+// The file ID and name on the file system will be a randomly generated UUID.
+func (s *Service) SaveFileBatch(ctx context.Context, userID string, directoryID string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
+	root, err := s.ValidateUserDir(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if directoryID == "" {
+		directoryID = root.ID
+	} else {
+		// Ensure the directory exists.
+		_, err := s.store.SelectDirectoryByIDUser(ctx, directoryID, userID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("directory '%s' does not exist: %w", directoryID, err),
+					SafeMessage: fmt.Sprintf("Directory '%s' does not exist", directoryID),
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			return nil, err
+		}
+	}
+
+	results := []BatchSave{}
+	for _, header := range fileHeaders {
+		file, err := s.writeFile(ctx, userID, directoryID, header)
+		batchSave := BatchSave{File: file}
+		if err != nil {
+			batchSave.Err = err
+		}
+
+		results = append(results, batchSave)
+	}
+
+	return results, nil
+}
+
+// writeFile writes a file to the server and returns it as a File. The location of
+// the file is defined by the directoryID. Files will be a direct child of the specfied
+// directory.
+//
+// The file write is wrapped in a transaction. If a transaction fails to commit or returns
+// an error associated with a inconsistent state, this method will attempt to delete the
+// file from the file system. If that fails it will be logged for manual intervention.
+//
+// The File returned will always have its Name and Size fields set even if there is an error.
+func (s *Service) writeFile(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (File, error) {
+	var file FileIO
+
+	err := s.store.Tx(ctx, func(tx *db.Tx) error {
+		fileIO, err := s.io.NewFile(ctx, NewQuery(tx), NewFileIO{
+			ID:          uuid.NewString(),
+			UserID:      userID,
+			DirectoryID: directoryID,
+			UploadedAt:  time.Now().UTC(),
+			Header:      header,
+			FSDir:       s.path,
+			FSPerm:      0600,
+		})
+		if err != nil {
+			return err
+		}
+
+		file = fileIO
+		return nil
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUniqueDirectoryIDName):
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("file name not available [name: %s, directory_id: %s]: %w", header.Filename, directoryID, err),
+				SafeMessage: fmt.Sprintf("File '%s' already exists", header.Filename),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+		// TODO:
+		// 	If error is a ErrCommitTx, a Write File Error,
+		// 	or Change Mode Error, delete the file from the
+		// 	file system.
+		return File{Name: header.Filename, Size: header.Size}, err
+	}
+
+	return File{
+		ID:          file.ID,
+		DirectoryID: file.DirectoryID,
+		Name:        file.Name,
+		Path:        file.UserPath,
+		Size:        file.Size,
+		UploadedAt:  file.UploadedAt.UTC(),
 	}, nil
 }
