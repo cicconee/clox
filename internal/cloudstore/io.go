@@ -212,8 +212,8 @@ func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error)
 	}
 	fsPath := fmt.Sprintf("%s/%s/%s", f.FSDir, strings.Join(dirIDPath, "/"), f.ID)
 
-	// Create the file on the file system.
-	dst, err := os.Create(fsPath) // TODO: Wrap this call in OSFileSystem.
+	// Create the file and set the file permissions on the file system.
+	dst, err := os.OpenFile(fsPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.FSPerm) // TODO: Wrap this call in OSFileSystem.
 	if err != nil {
 		return FileIO{}, err
 	}
@@ -226,13 +226,6 @@ func (i *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error)
 		return FileIO{}, err
 	}
 	dst.Close()
-
-	err = os.Chmod(fsPath, f.FSPerm)
-	if err != nil {
-		// TODO: Wrap in specific error signifying this error happened after
-		// the file was written to disk.
-		return FileIO{}, err
-	}
 
 	return FileIO{
 		ID:          f.ID,
