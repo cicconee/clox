@@ -24,6 +24,10 @@ func NewStore(db app.DB) *Store {
 // executes, it will be committed.
 //
 // If an error occurs, the transaction will be rolled back.
+//
+// If a ErrCommitTx is returned, the txFunc successfully executed. Any state
+// that was changed in the txFunc that is dependent on the transaction being
+// committed should be rolled back.
 func (s *Store) Tx(ctx context.Context, txFunc func(tx *db.Tx) error) error {
 	tx, err := s.db.Tx(ctx, nil)
 	if err != nil {
