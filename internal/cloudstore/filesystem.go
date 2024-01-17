@@ -62,6 +62,14 @@ func (fs *OSFileSystem) Copy(dst io.Writer, src io.Reader) (int64, error) {
 	return n, err
 }
 
+// Remove calls the os.Remove function.
+//
+// Remove removes the named file or (empty) directory. If there is an error, it
+// will be of type *PathError.
+func (fs *OSFileSystem) Remove(name string) error {
+	return os.Remove(name)
+}
+
 // RemoveAll calls the os.RemoveAll function.
 //
 // RemoveAll removes path and any children it contains. It removes everything

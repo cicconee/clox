@@ -161,6 +161,12 @@ func (io *IO) RemoveFSDir(fsPath string) error {
 	return io.fs.RemoveAll(fsPath)
 }
 
+// RemoveFS accpets the path to a file or (empty) directory and removes it from the
+// file system.
+func (io *IO) RemoveFS(fsPath string) error {
+	return io.fs.Remove(fsPath)
+}
+
 type NewFileIO struct {
 	ID          string
 	UserID      string

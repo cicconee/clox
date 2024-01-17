@@ -402,7 +402,7 @@ func (s *Service) writeFile(ctx context.Context, userID string, directoryID stri
 				StatusCode:  http.StatusBadRequest,
 			})
 		case errors.Is(err, ErrCommitTx), errors.Is(err, ErrCopy):
-			// TODO: Delete the file from the file system.
+			go s.removeFSFile(file.FSPath)
 		}
 
 		return File{Name: header.Filename, Size: header.Size}, err
@@ -416,4 +416,11 @@ func (s *Service) writeFile(ctx context.Context, userID string, directoryID stri
 		Size:        file.Size,
 		UploadedAt:  file.UploadedAt.UTC(),
 	}, nil
+}
+
+func (s *Service) removeFSFile(fsPath string) {
+	err := s.io.RemoveFS(fsPath)
+	if err != nil {
+		s.log.Printf("[ERROR] Removing file [path: %s]: %v\n", fsPath, err)
+	}
 }
