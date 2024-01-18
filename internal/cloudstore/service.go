@@ -276,6 +276,7 @@ type FileInfo struct {
 	DirectoryID string
 	Name        string
 	Path        string
+	FSPath      string
 	Size        int64
 	UploadedAt  time.Time
 }
@@ -414,6 +415,7 @@ func (s *Service) writeFile(ctx context.Context, userID string, directoryID stri
 		DirectoryID: file.DirectoryID,
 		Name:        file.Name,
 		Path:        file.UserPath,
+		FSPath:      file.FSPath,
 		Size:        file.Size,
 		UploadedAt:  file.UploadedAt.UTC(),
 	}, nil
