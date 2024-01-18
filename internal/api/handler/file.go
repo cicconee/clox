@@ -138,3 +138,26 @@ func (f *File) Upload() http.HandlerFunc {
 		w.Write(resp)
 	}
 }
+
+// Download returns a http.HandlerFunc that handles downloading a file when the
+// file ID is apart of the URL path.
+//
+// Download expects the user ID to be in the request context. To set the user ID in
+// the request context, use auth.SetUserIDContext.
+func (f *File) Download() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := auth.GetUserIDContext(r.Context())
+		fileID := chi.URLParam(r, "id")
+
+		file, err := f.cloud.FileInfo(r.Context(), userID, fileID)
+		if err != nil {
+			app.WriteJSONError(w, err)
+			f.log.Printf("[ERROR] [%s %s] Failed getting file info: %v\n", r.Method, r.URL.Path, err)
+			return
+		}
+
+		w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
+		w.Header().Set("Content-Type", "application/octet-stream")
+		http.ServeFile(w, r, file.FSPath)
+	}
+}
