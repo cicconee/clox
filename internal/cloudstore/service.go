@@ -427,3 +427,33 @@ func (s *Service) removeFSFile(fsPath string) {
 		s.log.Printf("[ERROR] Removing file [path: %s]: %v\n", fsPath, err)
 	}
 }
+
+// FileInfo gets the information for a users file. It is returned as a FileInfo.
+func (s *Service) FileInfo(ctx context.Context, userID string, fileID string) (FileInfo, error) {
+	file, err := s.io.ReadFileInfo(ctx, s.store.Query, ReadFileInfoIO{
+		UserID: userID,
+		FileID: fileID,
+		FSPath: s.path,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return FileInfo{}, app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("file '%s' does not exist: %w", fileID, err),
+				SafeMessage: "File not found",
+				StatusCode:  http.StatusNotFound,
+			})
+		}
+
+		return FileInfo{}, err
+	}
+
+	return FileInfo{
+		ID:          file.ID,
+		DirectoryID: file.DirectoryID,
+		Name:        file.Name,
+		Path:        file.UserPath,
+		FSPath:      file.FSPath,
+		Size:        file.Size,
+		UploadedAt:  file.UploadedAt.UTC(),
+	}, nil
+}
