@@ -240,3 +240,57 @@ func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error
 		Size:        f.Header.Size,
 	}, nil
 }
+
+type ReadFileInfoIO struct {
+	UserID string
+	FileID string
+	FSPath string
+}
+
+// FileInfo gets the information for a users file. The information is gathered
+// from both the database and file system, and returns it as a FileIO.
+//
+// The actual file content is not returned by this function.
+func (io *IO) ReadFileInfo(ctx context.Context, q *Query, f ReadFileInfoIO) (FileIO, error) {
+	row, err := q.SelectFileByIDUser(ctx, f.FileID, f.UserID)
+	if err != nil {
+		return FileIO{}, err
+	}
+
+	// Construct the path the user will reference.
+	dirNamePath, err := q.SelectDirectoryPath(ctx, row.DirectoryID)
+	if err != nil {
+		return FileIO{}, err
+	}
+	userPath := strings.Join(dirNamePath, "/")
+	userPath = strings.TrimPrefix(userPath, "root")
+	if userPath == "" {
+		userPath = "/" + row.Name
+	} else {
+		userPath += "/" + row.Name
+	}
+
+	// Construct the full file system path of the file.
+	dirIDPath, err := q.SelectDirectoryFSPath(ctx, row.DirectoryID)
+	if err != nil {
+		return FileIO{}, err
+	}
+	fsPath := fmt.Sprintf("%s/%s/%s", f.FSPath, strings.Join(dirIDPath, "/"), row.ID)
+
+	// Get the file size on the file system.
+	stat, err := io.fs.Stat(fsPath)
+	if err != nil {
+		return FileIO{}, err
+	}
+
+	return FileIO{
+		ID:          row.ID,
+		UserID:      row.UserID,
+		DirectoryID: row.DirectoryID,
+		Name:        row.Name,
+		UploadedAt:  row.UploadedAt.UTC(),
+		FSPath:      fsPath,
+		UserPath:    userPath,
+		Size:        stat.Size(),
+	}, nil
+}
