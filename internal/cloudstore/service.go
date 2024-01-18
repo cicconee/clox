@@ -271,7 +271,7 @@ func (s *Service) ValidateUserDir(ctx context.Context, userID string) (Dir, erro
 	}, nil
 }
 
-type File struct {
+type FileInfo struct {
 	ID          string
 	DirectoryID string
 	Name        string
@@ -285,9 +285,9 @@ type File struct {
 // will be set in the Err field.
 //
 // Any BatchSave returned by a service function should always set the
-// File.Name and File.Size, regardless of an error.
+// FileInfo.Name and FileInfo.Size, regardless of an error.
 type BatchSave struct {
-	File
+	FileInfo
 	Err error
 }
 
@@ -353,7 +353,7 @@ func (s *Service) SaveFileBatch(ctx context.Context, userID string, directoryID 
 	results := []BatchSave{}
 	for _, header := range fileHeaders {
 		file, err := s.writeFile(ctx, userID, directoryID, header)
-		batchSave := BatchSave{File: file}
+		batchSave := BatchSave{FileInfo: file}
 		if err != nil {
 			batchSave.Err = err
 		}
@@ -364,7 +364,7 @@ func (s *Service) SaveFileBatch(ctx context.Context, userID string, directoryID 
 	return results, nil
 }
 
-// writeFile writes a file to the server and returns it as a File. The location of
+// writeFile writes a file to the server and returns a FileInfo. The location of
 // the file is defined by the directoryID. Files will be a direct child of the specfied
 // directory.
 //
@@ -372,8 +372,9 @@ func (s *Service) SaveFileBatch(ctx context.Context, userID string, directoryID 
 // an error associated with a inconsistent state, this method will attempt to delete the
 // file from the file system. If that fails it will be logged for manual intervention.
 //
-// The File returned will always have its Name and Size fields set even if there is an error.
-func (s *Service) writeFile(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (File, error) {
+// The FileInfo returned will always have its Name and Size fields set even if there is
+// an error.
+func (s *Service) writeFile(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (FileInfo, error) {
 	var file FileIO
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
@@ -405,10 +406,10 @@ func (s *Service) writeFile(ctx context.Context, userID string, directoryID stri
 			go s.removeFSFile(file.FSPath)
 		}
 
-		return File{Name: header.Filename, Size: header.Size}, err
+		return FileInfo{Name: header.Filename, Size: header.Size}, err
 	}
 
-	return File{
+	return FileInfo{
 		ID:          file.ID,
 		DirectoryID: file.DirectoryID,
 		Name:        file.Name,
