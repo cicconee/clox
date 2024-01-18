@@ -308,3 +308,33 @@ func (q *Query) SelectDirectoryByIDUser(ctx context.Context, id string, userID s
 
 	return r, nil
 }
+
+type FileRow struct {
+	ID          string
+	UserID      string
+	DirectoryID string
+	Name        string
+	UploadedAt  time.Time
+}
+
+// SelectFileByIDUser selects a row from the files table by id and user_id.
+func (q *Query) SelectFileByIDUser(ctx context.Context, id string, userID string) (FileRow, error) {
+	query := `SELECT id, user_id, directory_id, name, uploaded_at
+			  FROM files 
+			  WHERE id = $1
+			  AND user_id = $2`
+
+	var f FileRow
+	err := q.db.QueryRow(ctx, query, id, userID).Scan(
+		&f.ID,
+		&f.UserID,
+		&f.DirectoryID,
+		&f.Name,
+		&f.UploadedAt,
+	)
+	if err != nil {
+		return FileRow{}, err
+	}
+
+	return f, nil
+}
