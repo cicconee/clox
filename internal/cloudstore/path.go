@@ -13,11 +13,14 @@ import (
 )
 
 // PathMapper maps user-facing paths to the path structure on the server.
-type PathMapper struct{}
+type PathMapper struct {
+	// The path to the root storage. All paths will begin here.
+	root string
+}
 
 // NewPathMapper creates a new PathMapper.
-func NewPathMapper() *PathMapper {
-	return &PathMapper{}
+func NewPathMapper(root string) *PathMapper {
+	return &PathMapper{root: root}
 }
 
 // DirSearch are the parameters for finding a directory ID based on the

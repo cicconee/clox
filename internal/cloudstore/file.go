@@ -77,7 +77,7 @@ func NewFileService(c FileServiceConfig) *FileService {
 	}
 
 	if c.PathMap == nil {
-		c.PathMap = NewPathMapper()
+		c.PathMap = NewPathMapper(c.Path)
 	}
 
 	return &FileService{

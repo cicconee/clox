@@ -68,7 +68,7 @@ func NewDirService(c DirServiceConfig) *DirService {
 	}
 
 	if c.PathMap == nil {
-		c.PathMap = NewPathMapper()
+		c.PathMap = NewPathMapper(c.Path)
 	}
 
 	return &DirService{

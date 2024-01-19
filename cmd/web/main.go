@@ -84,7 +84,7 @@ func Run(logger *log.Logger) error {
 			Store:   cloudstore.NewStore(database),
 			IO:      cloudstore.NewIO(&cloudstore.OSFileSystem{}),
 			Log:     logger,
-			PathMap: cloudstore.NewPathMapper(),
+			PathMap: cloudstore.NewPathMapper(config.FileStorePath),
 		}),
 	}
 
