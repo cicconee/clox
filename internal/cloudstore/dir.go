@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/cicconee/clox/internal/app"
@@ -21,18 +19,20 @@ import (
 //
 // DirService should be created using the NewDirService function.
 type DirService struct {
-	path  string
-	store *Store
-	io    *IO
-	log   *log.Logger
+	path    string
+	store   *Store
+	io      *IO
+	log     *log.Logger
+	pathMap *PathMapper
 }
 
 // DirServiceConfig is the DirService configuration.
 type DirServiceConfig struct {
-	Path  string
-	Store *Store
-	IO    *IO
-	Log   *log.Logger
+	Path    string
+	Store   *Store
+	IO      *IO
+	Log     *log.Logger
+	PathMap *PathMapper
 }
 
 // NewDirService creates a new DirService.
@@ -49,6 +49,8 @@ type DirServiceConfig struct {
 // multiple IO's.
 //
 // If Log is not set, it will default to log.Default().
+//
+// If PathMap is not set, it will default to NewPathMapper().
 func NewDirService(c DirServiceConfig) *DirService {
 	if c.Path == "" {
 		panic("cloudstore.NewDirService: cannot create DirService with empty Path")
@@ -63,6 +65,10 @@ func NewDirService(c DirServiceConfig) *DirService {
 
 	if c.Log == nil {
 		c.Log = log.Default()
+	}
+
+	if c.PathMap == nil {
+		c.PathMap = NewPathMapper()
 	}
 
 	return &DirService{
@@ -113,39 +119,13 @@ func (s *DirService) NewUser(ctx context.Context, userID string) (Dir, error) {
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *DirService) NewPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+func (s *DirService) NewPath(ctx context.Context, userID string, name string, path string) (Dir, error) {
 	return s.new(ctx, userID, name, func(rootID string) (string, error) {
-		fp := filepath.Clean(pathStr)
-		var p string
-		if fp == "." || fp == "/" {
-			p = "root"
-		} else if fp[0] == '/' {
-			p = "root" + fp
-		} else {
-			p = "root/" + fp
-		}
-		path := strings.Split(p, "/")
-
-		parentID := rootID
-		for i := 1; i < len(path); i++ {
-			pName := path[i]
-			dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, parentID)
-			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					return "", app.Wrap(app.WrapParams{
-						Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
-						SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
-						StatusCode:  http.StatusBadRequest,
-					})
-				}
-
-				return "", err
-			}
-
-			parentID = dir.ID
-		}
-
-		return parentID, nil
+		return s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
+			UserID: userID,
+			RootID: rootID,
+			Path:   path,
+		})
 	})
 }
 
