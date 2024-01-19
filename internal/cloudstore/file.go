@@ -154,41 +154,26 @@ func (b *BatchSave) Msg() string {
 //
 // The file ID and name on the file system will be a randomly generated UUID.
 func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
-	root, err := s.validateUser(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
+	return s.saveBatch(ctx, userID, fileHeaders, func(r string) (string, error) {
+		if directoryID == "" {
+			return r, nil
+		}
 
-	if directoryID == "" {
-		directoryID = root.ID
-	} else {
-		// Ensure the directory exists.
 		_, err := s.store.SelectDirectoryByIDUser(ctx, directoryID, userID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return nil, app.Wrap(app.WrapParams{
+				return "", app.Wrap(app.WrapParams{
 					Err:         fmt.Errorf("directory '%s' does not exist: %w", directoryID, err),
 					SafeMessage: fmt.Sprintf("Directory '%s' does not exist", directoryID),
 					StatusCode:  http.StatusBadRequest,
 				})
 			}
 
-			return nil, err
-		}
-	}
-
-	results := []BatchSave{}
-	for _, header := range fileHeaders {
-		file, err := s.write(ctx, userID, directoryID, header)
-		batchSave := BatchSave{FileInfo: file}
-		if err != nil {
-			batchSave.Err = err
+			return "", err
 		}
 
-		results = append(results, batchSave)
-	}
-
-	return results, nil
+		return directoryID, nil
+	})
 }
 
 // SaveBatchPath writes all the files for a user under the specified path. The file
@@ -204,16 +189,25 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 //
 // The file ID and name on the file system will be a randomly generated UUID.
 func (s *FileService) SaveBatchPath(ctx context.Context, userID string, path string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
+	return s.saveBatch(ctx, userID, fileHeaders, func(r string) (string, error) {
+		return s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
+			UserID: userID,
+			RootID: r,
+			Path:   path,
+		})
+	})
+}
+
+// saveBatch saves all the files in fileHeaders. Each file name is saved as FileHeader
+// Filename value. The users root directory is validated and then passes the ID to
+// getDirID. This function will return the ID of the files parent directory.
+func (s *FileService) saveBatch(ctx context.Context, userID string, fileHeaders []*multipart.FileHeader, getDirID idFunc) ([]BatchSave, error) {
 	root, err := s.validateUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	directoryID, err := s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
-		UserID: userID,
-		RootID: root.ID,
-		Path:   path,
-	})
+	directoryID, err := getDirID(root.ID)
 	if err != nil {
 		return nil, err
 	}
