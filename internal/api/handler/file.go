@@ -15,12 +15,12 @@ import (
 )
 
 type File struct {
-	cloud *cloudstore.Service
+	files *cloudstore.FileService
 	log   *log.Logger
 }
 
-func NewFile(cloud *cloudstore.Service, log *log.Logger) *File {
-	return &File{cloud: cloud, log: log}
+func NewFile(files *cloudstore.FileService, log *log.Logger) *File {
+	return &File{files: files, log: log}
 }
 
 // uploadFileResponse encapsulates the result of a file upload operation
@@ -119,7 +119,7 @@ func (f *File) Upload() http.HandlerFunc {
 		formdata := r.MultipartForm
 		files := formdata.File["file_uploads"]
 
-		result, err := f.cloud.SaveFileBatch(r.Context(), userID, directoryID, files)
+		result, err := f.files.SaveFileBatch(r.Context(), userID, directoryID, files)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			f.log.Printf("[ERROR] [%s %s] Failed to save files: %v\n", r.Method, r.URL.Path, err)
@@ -149,7 +149,7 @@ func (f *File) Download() http.HandlerFunc {
 		userID := auth.GetUserIDContext(r.Context())
 		fileID := chi.URLParam(r, "id")
 
-		file, err := f.cloud.FileInfo(r.Context(), userID, fileID)
+		file, err := f.files.FileInfo(r.Context(), userID, fileID)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			f.log.Printf("[ERROR] [%s %s] Failed getting file info: %v\n", r.Method, r.URL.Path, err)

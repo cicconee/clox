@@ -15,11 +15,12 @@ import (
 
 // App encapsulates the Clox API.
 type App struct {
-	Server *server.HTTP
-	Logger *log.Logger
-	Users  *user.Service
-	Tokens *token.Service
-	Cloud  *cloudstore.Service
+	Server     *server.HTTP
+	Logger     *log.Logger
+	Users      *user.Service
+	Tokens     *token.Service
+	Cloud      *cloudstore.Service
+	CloudFiles *cloudstore.FileService
 
 	users       *handler.User
 	directories *handler.Directory
@@ -38,7 +39,7 @@ func (a *App) init() error {
 
 	a.users = handler.NewUser(a.Users, a.Logger)
 	a.directories = handler.NewDirectory(a.Cloud, a.Logger)
-	a.files = handler.NewFile(a.Cloud, a.Logger)
+	a.files = handler.NewFile(a.CloudFiles, a.Logger)
 
 	a.tokenMiddleware = middleware.NewToken(authenticator, a.Logger)
 

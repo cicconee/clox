@@ -57,12 +57,27 @@ func Run(logger *log.Logger) error {
 	jwts := jwt.NewManager("clox-server-side-app", "clox-api")
 	config.SetJWTSecret(jwts)
 
+	// Configure cloudstore dependencies.
+	cloudStorage := cloudstore.NewStore(database)
+	cloudIO := cloudstore.NewIO(&cloudstore.OSFileSystem{})
+
+	// Configure cloudstore services.
+	cloud := cloudstore.NewService(config.FileStorePath, cloudStorage, cloudIO, logger)
+	files := cloudstore.NewFileService(cloudstore.FileServiceConfig{
+		Path:            config.FileStorePath,
+		Store:           cloudStorage,
+		IO:              cloudIO,
+		Log:             logger,
+		ValidateUserDir: cloud.ValidateUserDir,
+	})
+
 	webApp := &app.App{
-		Server: server.New(config.Host, config.APIPort, router.NewChi()),
-		Logger: logger,
-		Users:  user.NewService(user.NewRepo(database)),
-		Tokens: token.NewService(jwts, cache, token.NewRepo(database)),
-		Cloud:  cloudstore.NewService(config.FileStorePath, cloudstore.NewStore(database), cloudstore.NewIO(&cloudstore.OSFileSystem{}), logger),
+		Server:     server.New(config.Host, config.APIPort, router.NewChi()),
+		Logger:     logger,
+		Users:      user.NewService(user.NewRepo(database)),
+		Tokens:     token.NewService(jwts, cache, token.NewRepo(database)),
+		Cloud:      cloud,
+		CloudFiles: files,
 	}
 
 	return webApp.Start()
