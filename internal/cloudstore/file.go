@@ -221,7 +221,7 @@ func (s *FileService) write(ctx context.Context, userID string, directoryID stri
 				StatusCode:  http.StatusBadRequest,
 			})
 		case errors.Is(err, ErrCommitTx), errors.Is(err, ErrCopy):
-			go s.removeFSFile(file.FSPath)
+			go s.removeFS(file.FSPath)
 		}
 
 		return FileInfo{Name: header.Filename, Size: header.Size}, err
@@ -238,7 +238,8 @@ func (s *FileService) write(ctx context.Context, userID string, directoryID stri
 	}, nil
 }
 
-func (s *FileService) removeFSFile(fsPath string) {
+// removeFS removes a file from the file system. If it fails it will be logged.
+func (s *FileService) removeFS(fsPath string) {
 	err := s.io.RemoveFS(fsPath)
 	if err != nil {
 		s.log.Printf("[ERROR] Removing file [path: %s]: %v\n", fsPath, err)
