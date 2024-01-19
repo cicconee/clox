@@ -148,13 +148,13 @@ func (s *DirService) New(ctx context.Context, userID string, name string, parent
 }
 
 // new creates a new directory with the given name. The root directory is validated
-// and then passes the root directory ID to the parentFunc. This function should return
+// and then passes the root directory ID to getParentID. This function should return
 // the ID of the parent directory that the new directory will be written under.
 //
-// If parentFunc returns an error, new will not modify it and return it as is.
+// If getParentID returns an error, new will not modify it and return it as is.
 //
 // If name is empty an error is returned.
-func (s *DirService) new(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
+func (s *DirService) new(ctx context.Context, userID string, name string, getParentID idFunc) (Dir, error) {
 	if name == "" {
 		return Dir{}, app.Wrap(app.WrapParams{
 			Err:         errors.New("empty directory name"),
@@ -168,7 +168,7 @@ func (s *DirService) new(ctx context.Context, userID string, name string, parent
 		return Dir{}, err
 	}
 
-	parentID, err := parentFunc(root.ID)
+	parentID, err := getParentID(root.ID)
 	if err != nil {
 		return Dir{}, err
 	}
