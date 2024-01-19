@@ -79,7 +79,12 @@ func Run(logger *log.Logger) error {
 		Sessions:     session.NewManager(cache),
 		Users:        user.NewService(user.NewRepo(database)),
 		Tokens:       token.NewService(jwts, cache, token.NewRepo(database)),
-		CloudDirs:    cloudstore.NewDirService(config.FileStorePath, cloudstore.NewStore(database), cloudstore.NewIO(&cloudstore.OSFileSystem{}), logger),
+		CloudDirs: cloudstore.NewDirService(cloudstore.DirServiceConfig{
+			Path:  config.FileStorePath,
+			Store: cloudstore.NewStore(database),
+			IO:    cloudstore.NewIO(&cloudstore.OSFileSystem{}),
+			Log:   logger,
+		}),
 	}
 
 	return webApp.Start()

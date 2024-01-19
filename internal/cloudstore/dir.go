@@ -25,9 +25,50 @@ type DirService struct {
 	log   *log.Logger
 }
 
-// NewDirService created a new DirService.
-func NewDirService(path string, store *Store, io *IO, log *log.Logger) *DirService {
-	return &DirService{path: path, store: store, io: io, log: log}
+// DirServiceConfig is the DirService configuration.
+type DirServiceConfig struct {
+	Path  string
+	Store *Store
+	IO    *IO
+	Log   *log.Logger
+}
+
+// NewDirService creates a new DirService.
+//
+// Path should be the path to the root storage directory on the
+// file system. This is the directory that will store all
+// directories for Clox users.
+//
+// Path and Store must be set otherwise it will panic.
+//
+// If IO is not set, it will default to NewIO(&OSFileSystem{}). If
+// initializing multiple cloudstore services, it is recommended to
+// use the same IO with all services. This will avoid initializing
+// multiple IO's.
+//
+// If Log is not set, it will default to log.Default().
+func NewDirService(c DirServiceConfig) *DirService {
+	if c.Path == "" {
+		panic("cloudstore.NewDirService: cannot create DirService with empty Path")
+	}
+	if c.Store == nil {
+		panic("cloudstore.NewDirService: cannot create DirService with nil Store")
+	}
+
+	if c.IO == nil {
+		c.IO = NewIO(&OSFileSystem{})
+	}
+
+	if c.Log == nil {
+		c.Log = log.Default()
+	}
+
+	return &DirService{
+		path:  c.Path,
+		store: c.Store,
+		io:    c.IO,
+		log:   c.Log,
+	}
 }
 
 // SetupRoot will validate that a directory exists with the value of path
