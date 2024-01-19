@@ -271,15 +271,7 @@ func (s *FileService) write(ctx context.Context, userID string, directoryID stri
 		return FileInfo{Name: header.Filename, Size: header.Size}, err
 	}
 
-	return FileInfo{
-		ID:          file.ID,
-		DirectoryID: file.DirectoryID,
-		Name:        file.Name,
-		Path:        file.UserPath,
-		FSPath:      file.FSPath,
-		Size:        file.Size,
-		UploadedAt:  file.UploadedAt.UTC(),
-	}, nil
+	return file.fileInfo(), nil
 }
 
 // removeFS removes a file from the file system. If it fails it will be logged.
@@ -309,13 +301,5 @@ func (s *FileService) Info(ctx context.Context, userID string, fileID string) (F
 		return FileInfo{}, err
 	}
 
-	return FileInfo{
-		ID:          file.ID,
-		DirectoryID: file.DirectoryID,
-		Name:        file.Name,
-		Path:        file.UserPath,
-		FSPath:      file.FSPath,
-		Size:        file.Size,
-		UploadedAt:  file.UploadedAt.UTC(),
-	}, nil
+	return file.fileInfo(), nil
 }

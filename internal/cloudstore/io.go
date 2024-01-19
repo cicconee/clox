@@ -10,29 +10,6 @@ import (
 	"time"
 )
 
-type DirIO struct {
-	ID        string
-	UserID    string
-	Name      string
-	ParentID  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	LastWrite time.Time
-	FSPath    string
-	UserPath  string
-}
-
-type FileIO struct {
-	ID          string
-	UserID      string
-	DirectoryID string
-	Name        string
-	UploadedAt  time.Time
-	FSPath      string
-	UserPath    string
-	Size        int64
-}
-
 type IO struct {
 	fs *OSFileSystem
 }
@@ -60,6 +37,18 @@ func (io *IO) SetupFSRoot(path string, perm fs.FileMode) error {
 	}
 
 	return nil
+}
+
+type DirIO struct {
+	ID        string
+	UserID    string
+	Name      string
+	ParentID  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	LastWrite time.Time
+	FSPath    string
+	UserPath  string
 }
 
 // NewDirIO is the parameters when creating a new directory.
@@ -165,6 +154,30 @@ func (io *IO) RemoveFSDir(fsPath string) error {
 // file system.
 func (io *IO) RemoveFS(fsPath string) error {
 	return io.fs.Remove(fsPath)
+}
+
+type FileIO struct {
+	ID          string
+	UserID      string
+	DirectoryID string
+	Name        string
+	UploadedAt  time.Time
+	FSPath      string
+	UserPath    string
+	Size        int64
+}
+
+// fileInfo returns this FileIO as a FileInfo.
+func (f *FileIO) fileInfo() FileInfo {
+	return FileInfo{
+		ID:          f.ID,
+		DirectoryID: f.DirectoryID,
+		Name:        f.Name,
+		Path:        f.UserPath,
+		FSPath:      f.FSPath,
+		Size:        f.Size,
+		UploadedAt:  f.UploadedAt.UTC(),
+	}
 }
 
 type NewFileIO struct {
