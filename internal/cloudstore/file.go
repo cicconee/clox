@@ -15,12 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserValidatorFunc validates that a users directory structure exists
-// on the server. It should take a user ID and verify the storage
-// mechanism is set up for the user. If it is not, it should set up the
-// users storage.
-type UserValidatorFunc func(ctx context.Context, userID string) (Dir, error)
-
 // FileService is the business logic for the cloudstore file
 // functionality.
 //
