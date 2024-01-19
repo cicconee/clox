@@ -64,11 +64,11 @@ func Run(logger *log.Logger) error {
 	// Configure cloudstore services.
 	dirs := cloudstore.NewDirService(config.FileStorePath, cloudStorage, cloudIO, logger)
 	files := cloudstore.NewFileService(cloudstore.FileServiceConfig{
-		Path:            config.FileStorePath,
-		Store:           cloudStorage,
-		IO:              cloudIO,
-		Log:             logger,
-		ValidateUserDir: dirs.ValidateUser,
+		Path:         config.FileStorePath,
+		Store:        cloudStorage,
+		IO:           cloudIO,
+		Log:          logger,
+		ValidateUser: dirs.ValidateUser,
 	})
 
 	webApp := &app.App{

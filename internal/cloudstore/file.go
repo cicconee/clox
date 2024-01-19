@@ -15,11 +15,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserDirValidatorFunc validates that a directory was allocated on
-// the server for a specific user. It should take a user ID and check
-// that the directory exists for the user. If it does not, it should
-// create it.
-type UserDirValidatorFunc func(ctx context.Context, userID string) (Dir, error)
+// UserValidatorFunc validates that a users directory structure exists
+// on the server. It should take a user ID and verify the storage
+// mechanism is set up for the user. If it is not, it should set up the
+// users storage.
+type UserValidatorFunc func(ctx context.Context, userID string) (Dir, error)
 
 // FileService is the business logic for the cloudstore file
 // functionality.
@@ -27,20 +27,20 @@ type UserDirValidatorFunc func(ctx context.Context, userID string) (Dir, error)
 // FileService should be created using the NewFileService
 // function.
 type FileService struct {
-	path            string
-	store           *Store
-	io              *IO
-	log             *log.Logger
-	validateUserDir UserDirValidatorFunc
+	path         string
+	store        *Store
+	io           *IO
+	log          *log.Logger
+	validateUser UserValidatorFunc
 }
 
 // FileServiceConfig is the FileService configuration.
 type FileServiceConfig struct {
-	Path            string
-	Store           *Store
-	IO              *IO
-	Log             *log.Logger
-	ValidateUserDir UserDirValidatorFunc
+	Path         string
+	Store        *Store
+	IO           *IO
+	Log          *log.Logger
+	ValidateUser UserValidatorFunc
 }
 
 // NewFileService creates a new FileService.
@@ -66,8 +66,8 @@ func NewFileService(c FileServiceConfig) *FileService {
 		panic("cloudstore.NewFileService: cannot create FileService with nil Store")
 	}
 
-	if c.ValidateUserDir == nil {
-		panic("cloudstore.NewFileService: cannot create FileService with nil UserDirValidatorFunc")
+	if c.ValidateUser == nil {
+		panic("cloudstore.NewFileService: cannot create FileService with nil UserValidatorFunc")
 	}
 
 	if c.IO == nil {
@@ -79,11 +79,11 @@ func NewFileService(c FileServiceConfig) *FileService {
 	}
 
 	return &FileService{
-		path:            c.Path,
-		store:           c.Store,
-		io:              c.IO,
-		log:             c.Log,
-		validateUserDir: c.ValidateUserDir,
+		path:         c.Path,
+		store:        c.Store,
+		io:           c.IO,
+		log:          c.Log,
+		validateUser: c.ValidateUser,
 	}
 }
 
@@ -145,7 +145,7 @@ func (b *BatchSave) Msg() string {
 //
 // The file ID and name on the file system will be a randomly generated UUID.
 func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
-	root, err := s.validateUserDir(ctx, userID)
+	root, err := s.validateUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
