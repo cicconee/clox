@@ -144,7 +144,7 @@ func (b *BatchSave) Msg() string {
 // exist it will create it.
 //
 // The file ID and name on the file system will be a randomly generated UUID.
-func (s *FileService) SaveFileBatch(ctx context.Context, userID string, directoryID string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
+func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
 	root, err := s.validateUserDir(ctx, userID)
 	if err != nil {
 		return nil, err

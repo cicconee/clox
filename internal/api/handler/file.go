@@ -119,7 +119,7 @@ func (f *File) Upload() http.HandlerFunc {
 		formdata := r.MultipartForm
 		files := formdata.File["file_uploads"]
 
-		result, err := f.files.SaveFileBatch(r.Context(), userID, directoryID, files)
+		result, err := f.files.SaveBatch(r.Context(), userID, directoryID, files)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			f.log.Printf("[ERROR] [%s %s] Failed to save files: %v\n", r.Method, r.URL.Path, err)
