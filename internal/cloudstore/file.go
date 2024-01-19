@@ -131,7 +131,7 @@ func (b *BatchSave) Msg() string {
 	return ""
 }
 
-// SaveFileBatch writes all the files for a user under the specified directory. The
+// SaveBatch writes all the files for a user under the specified directory. The
 // file permissions are set to 0600. If directoryID is empty, it will default to the
 // users root directory. The file names persisted will be the FileName value of each
 // multipart.FileHeader.
@@ -140,7 +140,7 @@ func (b *BatchSave) Msg() string {
 // will be set in the Err field. Every BatchSave will always have its Name and Size
 // fields set.
 //
-// SaveFileBatch validates that a users root directory has been created. If it does not
+// SaveBatch validates that a users root directory has been created. If it does not
 // exist it will create it.
 //
 // The file ID and name on the file system will be a randomly generated UUID.
@@ -182,7 +182,7 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 	return results, nil
 }
 
-// writeFile writes a file to the server and returns a FileInfo. The location of
+// write writes a file to the server and returns a FileInfo. The location of
 // the file is defined by the directoryID. Files will be a direct child of the specfied
 // directory.
 //
