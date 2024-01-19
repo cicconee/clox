@@ -149,7 +149,7 @@ func (f *File) Download() http.HandlerFunc {
 		userID := auth.GetUserIDContext(r.Context())
 		fileID := chi.URLParam(r, "id")
 
-		file, err := f.files.FileInfo(r.Context(), userID, fileID)
+		file, err := f.files.Info(r.Context(), userID, fileID)
 		if err != nil {
 			app.WriteJSONError(w, err)
 			f.log.Printf("[ERROR] [%s %s] Failed getting file info: %v\n", r.Method, r.URL.Path, err)

@@ -246,8 +246,8 @@ func (s *FileService) removeFS(fsPath string) {
 	}
 }
 
-// FileInfo gets the information for a users file. It is returned as a FileInfo.
-func (s *FileService) FileInfo(ctx context.Context, userID string, fileID string) (FileInfo, error) {
+// Info gets the information for a users file. It is returned as a FileInfo.
+func (s *FileService) Info(ctx context.Context, userID string, fileID string) (FileInfo, error) {
 	file, err := s.io.ReadFileInfo(ctx, s.store.Query, ReadFileInfoIO{
 		UserID: userID,
 		FileID: fileID,
