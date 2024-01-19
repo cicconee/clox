@@ -52,26 +52,26 @@ type Dir struct {
 	LastWrite time.Time
 }
 
-// NewUserDir creates a new root directory for a user. All sub directories will be
+// NewUser creates a new root directory for a user. All sub directories will be
 // persisted under this directory. Every users root directory will be named "root". The
 // file permissions are set to 0700.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 // The path "/" will correspond to this directory.
-func (s *DirService) NewUserDir(ctx context.Context, userID string) (Dir, error) {
-	return s.writeDir(ctx, userID, "root", "")
+func (s *DirService) NewUser(ctx context.Context, userID string) (Dir, error) {
+	return s.write(ctx, userID, "root", "")
 }
 
-// NewDirPath creates a new directory for a user under the provided path. The file
+// NewPath creates a new directory for a user under the provided path. The file
 // permissions are set to 0700. The path is cleaned using the filepath.Clean func.
 // An empty path will default to the users root directory.
 //
-// NewDirPath validates that a users root directory has been created. If it does not exist
+// NewPath validates that a users root directory has been created. If it does not exist
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *DirService) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
-	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
+func (s *DirService) NewPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+	return s.new(ctx, userID, name, func(rootID string) (string, error) {
 		fp := filepath.Clean(pathStr)
 		var p string
 		if fp == "." || fp == "/" {
@@ -106,16 +106,16 @@ func (s *DirService) NewDirPath(ctx context.Context, userID string, name string,
 	})
 }
 
-// NewDir creates a new directory for a user under a specific parent directory. The
+// New creates a new directory for a user under a specific parent directory. The
 // file permissions are set to 0700. If parentID is empty, it will default to the users
 // root directory.
 //
-// NewDir validates that a users root directory has been created. If it does not exist
+// New validates that a users root directory has been created. If it does not exist
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *DirService) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
-	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
+func (s *DirService) New(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+	return s.new(ctx, userID, name, func(rootID string) (string, error) {
 		if parentID == "" {
 			return rootID, nil
 		}
@@ -124,14 +124,14 @@ func (s *DirService) NewDir(ctx context.Context, userID string, name string, par
 	})
 }
 
-// newDir creates a new directory with the given name. The root directory is validated
+// new creates a new directory with the given name. The root directory is validated
 // and then passes the root directory ID to the parentFunc. This function should return
 // the ID of the parent directory that the new directory will be written under.
 //
-// If parentFunc returns an error, newDir will not modify it and return it as is.
+// If parentFunc returns an error, new will not modify it and return it as is.
 //
 // If name is empty an error is returned.
-func (s *DirService) newDir(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
+func (s *DirService) new(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
 	if name == "" {
 		return Dir{}, app.Wrap(app.WrapParams{
 			Err:         errors.New("empty directory name"),
@@ -140,7 +140,7 @@ func (s *DirService) newDir(ctx context.Context, userID string, name string, par
 		})
 	}
 
-	root, err := s.ValidateUserDir(ctx, userID)
+	root, err := s.ValidateUser(ctx, userID)
 	if err != nil {
 		return Dir{}, err
 	}
@@ -150,17 +150,17 @@ func (s *DirService) newDir(ctx context.Context, userID string, name string, par
 		return Dir{}, err
 	}
 
-	return s.writeDir(ctx, userID, name, parentID)
+	return s.write(ctx, userID, name, parentID)
 }
 
-// writeDir writes and returns a user directory. The location of the directory is defined by
+// write writes and returns a user directory. The location of the directory is defined by
 // the parentID. Directories will be a direct child of the parent.
 //
 // This DirService's io is used to persist the directory to the file system, and store the
 // information in the database. The operation is wrapped in a database transaction. If
 // commiting the transaction fails, it will attempt to delete the directory from the file
 // system.
-func (s *DirService) writeDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+func (s *DirService) write(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	var dir DirIO
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
@@ -203,7 +203,7 @@ func (s *DirService) writeDir(ctx context.Context, userID string, name string, p
 		case errors.Is(err, ErrCommitTx):
 			// At this point the file was written to disk, so the application is in a inconsistent state.
 			// Remove the directory since the information failed to be commited to the database.
-			go s.RemoveDir(ctx, dir.FSPath)
+			go s.Remove(ctx, dir.FSPath)
 		}
 
 		return Dir{}, err
@@ -220,31 +220,31 @@ func (s *DirService) writeDir(ctx context.Context, userID string, name string, p
 	}, nil
 }
 
-// RemoveDir accepts the path to a directory and removes it from the file system.
+// Remove accepts the path to a directory and removes it from the file system.
 // All sub directories and files will be removed. If directory cannot be removed,
 // the path will be logged.
 //
-// RemoveDir only removes the directory from the file system. The database remains
+// Remove only removes the directory from the file system. The database remains
 // unchanged.
-func (s *DirService) RemoveDir(ctx context.Context, fsPath string) {
+func (s *DirService) Remove(ctx context.Context, fsPath string) {
 	err := s.io.RemoveFSDir(fsPath)
 	if err != nil {
 		s.log.Printf("[ERROR] Removing directory [path: %s]: %v\n", fsPath, err)
 	}
 }
 
-// ValidateUserDir validates that a root directory exists for the user. If it does
+// ValidateUser validates that a root directory exists for the user. If it does
 // not exist, a root directory will be created for the user. The root directory is
 // returned.
 //
 // If a root directory exists and cannot be created, there is a serious problem with
 // the account and/or server. A app.WrappedSafeError will be returned with a message
 // stating they need to contact support.
-func (s *DirService) ValidateUserDir(ctx context.Context, userID string) (Dir, error) {
+func (s *DirService) ValidateUser(ctx context.Context, userID string) (Dir, error) {
 	row, err := s.store.SelectUserRootDirectory(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			rootDir, err := s.writeDir(ctx, userID, "root", "")
+			rootDir, err := s.write(ctx, userID, "root", "")
 			if err != nil {
 				return Dir{}, app.Wrap(app.WrapParams{
 					Err:         fmt.Errorf("creating users root directory: %w", err),

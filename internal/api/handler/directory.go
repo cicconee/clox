@@ -76,7 +76,7 @@ func marshalNewDirResponse(dir cloudstore.Dir) ([]byte, error) {
 func (d *Directory) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
-			return d.dirs.NewDir(r.Context(), userID, request.Name, chi.URLParam(r, "id"))
+			return d.dirs.New(r.Context(), userID, request.Name, chi.URLParam(r, "id"))
 		})
 	}
 }
@@ -91,7 +91,7 @@ func (d *Directory) New() http.HandlerFunc {
 func (d *Directory) NewPath() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
-			return d.dirs.NewDirPath(r.Context(), userID, request.Name, r.URL.Query().Get("path"))
+			return d.dirs.NewPath(r.Context(), userID, request.Name, r.URL.Query().Get("path"))
 		})
 	}
 }

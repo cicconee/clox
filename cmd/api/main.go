@@ -68,7 +68,7 @@ func Run(logger *log.Logger) error {
 		Store:           cloudStorage,
 		IO:              cloudIO,
 		Log:             logger,
-		ValidateUserDir: dirs.ValidateUserDir,
+		ValidateUserDir: dirs.ValidateUser,
 	})
 
 	webApp := &app.App{
