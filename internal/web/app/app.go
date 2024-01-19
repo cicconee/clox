@@ -30,7 +30,7 @@ type App struct {
 	Sessions     *session.Manager
 	Users        *user.Service
 	Tokens       *token.Service
-	Cloud        *cloudstore.Service
+	CloudDirs    *cloudstore.DirService
 
 	dashboard *handler.Dashboard
 	auth      *handler.Auth
@@ -48,12 +48,12 @@ func (a *App) init() error {
 		return fmt.Errorf("parsing templates: %w", err)
 	}
 
-	if err := a.Cloud.SetupRoot(); err != nil {
+	if err := a.CloudDirs.SetupRoot(); err != nil {
 		return fmt.Errorf("setting up root storage directory: %w", err)
 	}
 
 	googleAuthenticator := auth.NewAuthenticator(a.GoogleOAuth2, google.New(a.GoogleOAuth2), a.Users, a.Sessions)
-	registry := auth.NewRegistry(a.Users, a.Sessions, a.Cloud, a.Logger)
+	registry := auth.NewRegistry(a.Users, a.Sessions, a.CloudDirs, a.Logger)
 
 	a.dashboard = handler.NewDashboard(a.Template, a.Logger)
 	a.auth = handler.NewAuth(registry, a.Cookies, a.Template, a.Logger)

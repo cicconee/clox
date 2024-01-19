@@ -62,13 +62,13 @@ func Run(logger *log.Logger) error {
 	cloudIO := cloudstore.NewIO(&cloudstore.OSFileSystem{})
 
 	// Configure cloudstore services.
-	cloud := cloudstore.NewService(config.FileStorePath, cloudStorage, cloudIO, logger)
+	dirs := cloudstore.NewDirService(config.FileStorePath, cloudStorage, cloudIO, logger)
 	files := cloudstore.NewFileService(cloudstore.FileServiceConfig{
 		Path:            config.FileStorePath,
 		Store:           cloudStorage,
 		IO:              cloudIO,
 		Log:             logger,
-		ValidateUserDir: cloud.ValidateUserDir,
+		ValidateUserDir: dirs.ValidateUserDir,
 	})
 
 	webApp := &app.App{
@@ -76,7 +76,7 @@ func Run(logger *log.Logger) error {
 		Logger:     logger,
 		Users:      user.NewService(user.NewRepo(database)),
 		Tokens:     token.NewService(jwts, cache, token.NewRepo(database)),
-		Cloud:      cloud,
+		CloudDirs:  dirs,
 		CloudFiles: files,
 	}
 

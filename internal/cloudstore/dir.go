@@ -18,27 +18,27 @@ import (
 
 // Service is the business logic for the cloudstore package.
 // Interact with the cloud storage capabilities with this struct.
-type Service struct {
+type DirService struct {
 	path  string
 	store *Store
 	io    *IO
 	log   *log.Logger
 }
 
-// NewService created a new Service.
-func NewService(path string, store *Store, io *IO, log *log.Logger) *Service {
-	return &Service{path: path, store: store, io: io, log: log}
+// NewDirService created a new DirService.
+func NewDirService(path string, store *Store, io *IO, log *log.Logger) *DirService {
+	return &DirService{path: path, store: store, io: io, log: log}
 }
 
 // SetupRoot will validate that a directory exists with the value of path
-// in this Service. If it does not exist, it will be created.
+// in this DirService. If it does not exist, it will be created.
 //
 // The directory created will have permissions 0700. Only the system user
 // that is running this application can read, write, and execute this
 // directory.
 //
-// This method should be called once before executing any other Service methods.
-func (s *Service) SetupRoot() error {
+// This method should be called once before executing any other DirService methods.
+func (s *DirService) SetupRoot() error {
 	return s.io.SetupFSRoot(s.path, 0700)
 }
 
@@ -58,7 +58,7 @@ type Dir struct {
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
 // The path "/" will correspond to this directory.
-func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
+func (s *DirService) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 	return s.writeDir(ctx, userID, "root", "")
 }
 
@@ -70,7 +70,7 @@ func (s *Service) NewUserDir(ctx context.Context, userID string) (Dir, error) {
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
+func (s *DirService) NewDirPath(ctx context.Context, userID string, name string, pathStr string) (Dir, error) {
 	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
 		fp := filepath.Clean(pathStr)
 		var p string
@@ -114,7 +114,7 @@ func (s *Service) NewDirPath(ctx context.Context, userID string, name string, pa
 // it will create it.
 //
 // The directory ID and name on the file system will be a randomly generated UUID.
-func (s *Service) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+func (s *DirService) NewDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	return s.newDir(ctx, userID, name, func(rootID string) (string, error) {
 		if parentID == "" {
 			return rootID, nil
@@ -131,7 +131,7 @@ func (s *Service) NewDir(ctx context.Context, userID string, name string, parent
 // If parentFunc returns an error, newDir will not modify it and return it as is.
 //
 // If name is empty an error is returned.
-func (s *Service) newDir(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
+func (s *DirService) newDir(ctx context.Context, userID string, name string, parentFunc func(string) (string, error)) (Dir, error) {
 	if name == "" {
 		return Dir{}, app.Wrap(app.WrapParams{
 			Err:         errors.New("empty directory name"),
@@ -156,11 +156,11 @@ func (s *Service) newDir(ctx context.Context, userID string, name string, parent
 // writeDir writes and returns a user directory. The location of the directory is defined by
 // the parentID. Directories will be a direct child of the parent.
 //
-// This Service's io is used to persist the directory to the file system, and store the
+// This DirService's io is used to persist the directory to the file system, and store the
 // information in the database. The operation is wrapped in a database transaction. If
 // commiting the transaction fails, it will attempt to delete the directory from the file
 // system.
-func (s *Service) writeDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
+func (s *DirService) writeDir(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
 	var dir DirIO
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
@@ -226,7 +226,7 @@ func (s *Service) writeDir(ctx context.Context, userID string, name string, pare
 //
 // RemoveDir only removes the directory from the file system. The database remains
 // unchanged.
-func (s *Service) RemoveDir(ctx context.Context, fsPath string) {
+func (s *DirService) RemoveDir(ctx context.Context, fsPath string) {
 	err := s.io.RemoveFSDir(fsPath)
 	if err != nil {
 		s.log.Printf("[ERROR] Removing directory [path: %s]: %v\n", fsPath, err)
@@ -240,7 +240,7 @@ func (s *Service) RemoveDir(ctx context.Context, fsPath string) {
 // If a root directory exists and cannot be created, there is a serious problem with
 // the account and/or server. A app.WrappedSafeError will be returned with a message
 // stating they need to contact support.
-func (s *Service) ValidateUserDir(ctx context.Context, userID string) (Dir, error) {
+func (s *DirService) ValidateUserDir(ctx context.Context, userID string) (Dir, error) {
 	row, err := s.store.SelectUserRootDirectory(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

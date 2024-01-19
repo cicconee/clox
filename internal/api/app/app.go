@@ -19,7 +19,7 @@ type App struct {
 	Logger     *log.Logger
 	Users      *user.Service
 	Tokens     *token.Service
-	Cloud      *cloudstore.Service
+	CloudDirs  *cloudstore.DirService
 	CloudFiles *cloudstore.FileService
 
 	users       *handler.User
@@ -31,14 +31,14 @@ type App struct {
 
 // init initializes and validates App. If any required fields in App are not defined an error is returned.
 func (a *App) init() error {
-	if err := a.Cloud.SetupRoot(); err != nil {
+	if err := a.CloudDirs.SetupRoot(); err != nil {
 		return fmt.Errorf("setting up root storage directory: %w", err)
 	}
 
 	authenticator := auth.NewAuthenticator(a.Tokens, a.Users)
 
 	a.users = handler.NewUser(a.Users, a.Logger)
-	a.directories = handler.NewDirectory(a.Cloud, a.Logger)
+	a.directories = handler.NewDirectory(a.CloudDirs, a.Logger)
 	a.files = handler.NewFile(a.CloudFiles, a.Logger)
 
 	a.tokenMiddleware = middleware.NewToken(authenticator, a.Logger)

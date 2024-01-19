@@ -14,13 +14,13 @@ import (
 type Registry struct {
 	users    *user.Service
 	sessions *session.Manager
-	cloud    *cloudstore.Service
+	dirs     *cloudstore.DirService
 	log      *log.Logger
 }
 
 // NewRegistry creates a new Registry.
-func NewRegistry(users *user.Service, sessions *session.Manager, cloud *cloudstore.Service, log *log.Logger) *Registry {
-	return &Registry{users: users, sessions: sessions, cloud: cloud, log: log}
+func NewRegistry(users *user.Service, sessions *session.Manager, dirs *cloudstore.DirService, log *log.Logger) *Registry {
+	return &Registry{users: users, sessions: sessions, dirs: dirs, log: log}
 }
 
 // Register persists a user. Once registered, the session is updated to reflect the users new state.
@@ -47,7 +47,7 @@ func (r *Registry) Register(ctx context.Context, session session.User) error {
 		return fmt.Errorf("setting user session: %w", err)
 	}
 
-	dir, err := r.cloud.NewUserDir(ctx, user.ID)
+	dir, err := r.dirs.NewUserDir(ctx, user.ID)
 	if err != nil {
 		r.log.Printf("[ERROR] Creating root storage [user: %s]: %v\n", user.ID, err)
 	} else {

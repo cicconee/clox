@@ -13,12 +13,12 @@ import (
 )
 
 type Directory struct {
-	cloud *cloudstore.Service
-	log   *log.Logger
+	dirs *cloudstore.DirService
+	log  *log.Logger
 }
 
-func NewDirectory(cloud *cloudstore.Service, log *log.Logger) *Directory {
-	return &Directory{cloud: cloud, log: log}
+func NewDirectory(dirs *cloudstore.DirService, log *log.Logger) *Directory {
+	return &Directory{dirs: dirs, log: log}
 }
 
 // The request body when creating a new directory.
@@ -76,7 +76,7 @@ func marshalNewDirResponse(dir cloudstore.Dir) ([]byte, error) {
 func (d *Directory) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
-			return d.cloud.NewDir(r.Context(), userID, request.Name, chi.URLParam(r, "id"))
+			return d.dirs.NewDir(r.Context(), userID, request.Name, chi.URLParam(r, "id"))
 		})
 	}
 }
@@ -91,7 +91,7 @@ func (d *Directory) New() http.HandlerFunc {
 func (d *Directory) NewPath() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		d.new(w, r, func(userID string, request newDirRequest) (cloudstore.Dir, error) {
-			return d.cloud.NewDirPath(r.Context(), userID, request.Name, r.URL.Query().Get("path"))
+			return d.dirs.NewDirPath(r.Context(), userID, request.Name, r.URL.Query().Get("path"))
 		})
 	}
 }
