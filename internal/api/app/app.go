@@ -52,6 +52,7 @@ func (a *App) setRoutes() {
 	a.Server.SetRoute("POST", "/api/dir/{id}", a.directories.New(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/dir", a.directories.NewPath(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("POST", "/api/upload/{id}", a.files.Upload(), a.tokenMiddleware.Validate)
+	a.Server.SetRoute("POST", "/api/upload", a.files.UploadPath(), a.tokenMiddleware.Validate)
 	a.Server.SetRoute("GET", "/api/download/file/{id}", a.files.Download(), a.tokenMiddleware.Validate)
 }
 

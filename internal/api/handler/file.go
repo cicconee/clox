@@ -139,6 +139,56 @@ func (f *File) Upload() http.HandlerFunc {
 	}
 }
 
+// UploadPath return a http.HandlerFunc that handles uploading 1 or many files to
+// a specified directory when the when the directories path is specified as a URL
+// query parameter with the key "path".
+//
+// Upload expects the user ID to be in the request context. To set the user ID in
+// the request context, use auth.SetUserIDContext.
+func (f *File) UploadPath() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := auth.GetUserIDContext(r.Context())
+		path := r.URL.Query().Get("path")
+
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			if errors.Is(err, http.ErrNotMultipart) {
+				err = app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("invalid Content-Type header: %w", err),
+					SafeMessage: "Request Content-Type must be multipart/form-data for file uploads",
+					StatusCode:  http.StatusBadRequest,
+				})
+			} else if errors.Is(err, http.ErrMissingBoundary) {
+				err = app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("request Content-Type=multipar/formdata missing boundary: %w", err),
+					SafeMessage: "Request header Content-Type=multipart/form-data must include a boundary",
+					StatusCode:  http.StatusBadRequest,
+				})
+			} else {
+				err = app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("malformed request: %w", err),
+					SafeMessage: "Malformed request",
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			app.WriteJSONError(w, err)
+			f.log.Printf("[ERROR] %v\n", err)
+			return
+		}
+
+		formdata := r.MultipartForm
+		files := formdata.File["file_uploads"]
+
+		// TODO: Save files with f.files, passing in the user ID, directory path
+		// and the files to be saved.
+		f.log.Printf("[INFO] [%s %s] User '%s' uploaded %d files to '%s'", r.Method, r.URL.Path, userID, len(files), path)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message": "uploaded"}`))
+	}
+}
+
 // Download returns a http.HandlerFunc that handles downloading a file when the
 // file ID is apart of the URL path.
 //
