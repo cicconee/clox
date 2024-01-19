@@ -170,7 +170,7 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 
 	results := []BatchSave{}
 	for _, header := range fileHeaders {
-		file, err := s.writeFile(ctx, userID, directoryID, header)
+		file, err := s.write(ctx, userID, directoryID, header)
 		batchSave := BatchSave{FileInfo: file}
 		if err != nil {
 			batchSave.Err = err
@@ -192,7 +192,7 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 //
 // The FileInfo returned will always have its Name and Size fields set even if there is
 // an error.
-func (s *FileService) writeFile(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (FileInfo, error) {
+func (s *FileService) write(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (FileInfo, error) {
 	var file FileIO
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
