@@ -8,6 +8,8 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cicconee/clox/internal/app"
@@ -166,6 +168,68 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 
 			return nil, err
 		}
+	}
+
+	results := []BatchSave{}
+	for _, header := range fileHeaders {
+		file, err := s.write(ctx, userID, directoryID, header)
+		batchSave := BatchSave{FileInfo: file}
+		if err != nil {
+			batchSave.Err = err
+		}
+
+		results = append(results, batchSave)
+	}
+
+	return results, nil
+}
+
+// SaveBatchPath writes all the files for a user under the specified path. The file
+// permissions are set to 0600. The path is cleaned using the filepath.Clean func.
+// An empty path will default to the users root directory.
+//
+// For each BatchSave that is returned, if an error occured while saving the file, it
+// will be set in the Err field. Every BatchSave will always have its Name and Size
+// fields set.
+//
+// SaveBatchPath validates that a users root directory has been created. If it does not
+// exist it will create it.
+//
+// The file ID and name on the file system will be a randomly generated UUID.
+func (s *FileService) SaveBatchPath(ctx context.Context, userID string, pathStr string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
+	root, err := s.validateUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	fp := filepath.Clean(pathStr)
+	var p string
+	if fp == "." || fp == "/" {
+		p = "root"
+	} else if fp[0] == '/' {
+		p = "root" + fp
+	} else {
+		p = "root/" + fp
+	}
+	path := strings.Split(p, "/")
+
+	directoryID := root.ID
+	for i := 1; i < len(path); i++ {
+		pName := path[i]
+		dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, directoryID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, app.Wrap(app.WrapParams{
+					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
+					SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
+					StatusCode:  http.StatusBadRequest,
+				})
+			}
+
+			return nil, err
+		}
+
+		directoryID = dir.ID
 	}
 
 	results := []BatchSave{}

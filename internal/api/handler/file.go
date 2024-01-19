@@ -179,13 +179,23 @@ func (f *File) UploadPath() http.HandlerFunc {
 		formdata := r.MultipartForm
 		files := formdata.File["file_uploads"]
 
-		// TODO: Save files with f.files, passing in the user ID, directory path
-		// and the files to be saved.
-		f.log.Printf("[INFO] [%s %s] User '%s' uploaded %d files to '%s'", r.Method, r.URL.Path, userID, len(files), path)
+		result, err := f.files.SaveBatchPath(r.Context(), userID, path, files)
+		if err != nil {
+			app.WriteJSONError(w, err)
+			f.log.Printf("[ERROR] [%s %s?path=%s] Failed to save files: %v\n", r.Method, r.URL.Path, path, err)
+			return
+		}
+
+		resp, err := marshalUploadResponse(result)
+		if err != nil {
+			app.WriteJSONError(w, err)
+			f.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "uploaded"}`))
+		w.Write(resp)
 	}
 }
 
