@@ -60,6 +60,7 @@ func Run(logger *log.Logger) error {
 	// Configure cloudstore dependencies.
 	cloudStorage := cloudstore.NewStore(database)
 	cloudIO := cloudstore.NewIO(&cloudstore.OSFileSystem{})
+	cloudPaths := cloudstore.NewPathMapper()
 
 	// Configure cloudstore services.
 	dirs := cloudstore.NewDirService(cloudstore.DirServiceConfig{
@@ -75,6 +76,7 @@ func Run(logger *log.Logger) error {
 		IO:           cloudIO,
 		Log:          logger,
 		ValidateUser: dirs.ValidateUser,
+		PathMap:      cloudPaths,
 	})
 
 	webApp := &app.App{

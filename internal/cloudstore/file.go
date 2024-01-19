@@ -8,8 +8,6 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/cicconee/clox/internal/app"
@@ -34,6 +32,7 @@ type FileService struct {
 	io           *IO
 	log          *log.Logger
 	validateUser UserValidatorFunc
+	pathMap      *PathMapper
 }
 
 // FileServiceConfig is the FileService configuration.
@@ -43,6 +42,7 @@ type FileServiceConfig struct {
 	IO           *IO
 	Log          *log.Logger
 	ValidateUser UserValidatorFunc
+	PathMap      *PathMapper
 }
 
 // NewFileService creates a new FileService.
@@ -58,6 +58,8 @@ type FileServiceConfig struct {
 // initializing multiple cloudstore services, it is recommended to
 // use the same IO with all services. This will avoid initializing
 // multiple IO's.
+//
+// If PathMap is not set, it will default to NewPathMapper().
 //
 // If Log is not set, it will default to log.Default().
 func NewFileService(c FileServiceConfig) *FileService {
@@ -80,12 +82,17 @@ func NewFileService(c FileServiceConfig) *FileService {
 		c.Log = log.Default()
 	}
 
+	if c.PathMap == nil {
+		c.PathMap = NewPathMapper()
+	}
+
 	return &FileService{
 		path:         c.Path,
 		store:        c.Store,
 		io:           c.IO,
 		log:          c.Log,
 		validateUser: c.ValidateUser,
+		pathMap:      c.PathMap,
 	}
 }
 
@@ -196,40 +203,19 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 // exist it will create it.
 //
 // The file ID and name on the file system will be a randomly generated UUID.
-func (s *FileService) SaveBatchPath(ctx context.Context, userID string, pathStr string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
+func (s *FileService) SaveBatchPath(ctx context.Context, userID string, path string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
 	root, err := s.validateUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	fp := filepath.Clean(pathStr)
-	var p string
-	if fp == "." || fp == "/" {
-		p = "root"
-	} else if fp[0] == '/' {
-		p = "root" + fp
-	} else {
-		p = "root/" + fp
-	}
-	path := strings.Split(p, "/")
-
-	directoryID := root.ID
-	for i := 1; i < len(path); i++ {
-		pName := path[i]
-		dir, err := s.store.SelectDirectoryByUserNameParent(ctx, userID, pName, directoryID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, pathStr),
-					SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(path[1:i+1], "/")),
-					StatusCode:  http.StatusBadRequest,
-				})
-			}
-
-			return nil, err
-		}
-
-		directoryID = dir.ID
+	directoryID, err := s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
+		UserID: userID,
+		RootID: root.ID,
+		Path:   path,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	results := []BatchSave{}
