@@ -16,8 +16,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service is the business logic for the cloudstore package.
-// Interact with the cloud storage capabilities with this struct.
+// DirService is the business logic for the cloudstore directory
+// functionality.
+//
+// DirService should be created using the NewDirService function.
 type DirService struct {
 	path  string
 	store *Store
