@@ -255,17 +255,9 @@ func (io *IO) ReadFileInfo(ctx context.Context, q *Query, f ReadFileInfoIO) (Fil
 		return FileIO{}, err
 	}
 
-	// Construct the path the user will reference.
-	dirNamePath, err := q.SelectDirectoryPath(ctx, row.DirectoryID)
+	userPath, err := io.paths.GetFile(ctx, q, row.DirectoryID, row.Name)
 	if err != nil {
 		return FileIO{}, err
-	}
-	userPath := strings.Join(dirNamePath, "/")
-	userPath = strings.TrimPrefix(userPath, "root")
-	if userPath == "" {
-		userPath = "/" + row.Name
-	} else {
-		userPath += "/" + row.Name
 	}
 
 	// Construct the full file system path of the file.
