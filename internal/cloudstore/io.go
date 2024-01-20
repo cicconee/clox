@@ -109,8 +109,7 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		}
 	}
 
-	// Get the path used on the file system.
-	idPath, err := q.SelectDirectoryFSPath(ctx, d.ID)
+	fsPath, err := io.paths.GetDirFS(ctx, q, d.ID)
 	if err != nil {
 		return DirIO{}, err
 	}
@@ -120,8 +119,6 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		return DirIO{}, err
 	}
 
-	// Ensure writing the directory to the file system is the last operation.
-	fsPath := fmt.Sprintf("%s/%s", d.FSDir, strings.Join(idPath, "/"))
 	if err := io.fs.Mkdir(fsPath, d.FSPerm); err != nil {
 		return DirIO{}, fmt.Errorf("creating directory [%s]: %w", fsPath, err)
 	}
