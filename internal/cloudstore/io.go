@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"mime/multipart"
-	"strings"
 	"time"
 )
 
@@ -255,12 +254,10 @@ func (io *IO) ReadFileInfo(ctx context.Context, q *Query, f ReadFileInfoIO) (Fil
 		return FileIO{}, err
 	}
 
-	// Construct the full file system path of the file.
-	dirIDPath, err := q.SelectDirectoryFSPath(ctx, row.DirectoryID)
+	fsPath, err := io.paths.GetFileFS(ctx, q, row.DirectoryID, row.ID)
 	if err != nil {
 		return FileIO{}, err
 	}
-	fsPath := fmt.Sprintf("%s/%s/%s", f.FSPath, strings.Join(dirIDPath, "/"), row.ID)
 
 	// Get the file size on the file system.
 	stat, err := io.fs.Stat(fsPath)
