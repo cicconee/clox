@@ -69,7 +69,7 @@ func NewFileService(c FileServiceConfig) *FileService {
 	}
 
 	if c.IO == nil {
-		c.IO = NewIO(&OSFileSystem{})
+		c.IO = NewIO(&OSFileSystem{}, NewPathMapper(c.Path))
 	}
 
 	if c.Log == nil {

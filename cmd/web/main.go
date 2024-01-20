@@ -70,6 +70,9 @@ func Run(logger *log.Logger) error {
 	jwts := jwt.NewManager("clox-server-side-app", "clox-api")
 	config.SetJWTSecret(jwts)
 
+	// Configure cloudstore dependencies.
+	cloudPaths := cloudstore.NewPathMapper(config.FileStorePath)
+
 	webApp := &app.App{
 		Server:       server.New(config.Host, config.Port, router.NewChi()),
 		Logger:       logger,
@@ -82,9 +85,9 @@ func Run(logger *log.Logger) error {
 		CloudDirs: cloudstore.NewDirService(cloudstore.DirServiceConfig{
 			Path:    config.FileStorePath,
 			Store:   cloudstore.NewStore(database),
-			IO:      cloudstore.NewIO(&cloudstore.OSFileSystem{}),
+			IO:      cloudstore.NewIO(&cloudstore.OSFileSystem{}, cloudPaths),
 			Log:     logger,
-			PathMap: cloudstore.NewPathMapper(config.FileStorePath),
+			PathMap: cloudPaths,
 		}),
 	}
 

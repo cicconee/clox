@@ -11,11 +11,12 @@ import (
 )
 
 type IO struct {
-	fs *OSFileSystem
+	fs    *OSFileSystem
+	paths *PathMapper
 }
 
-func NewIO(fs *OSFileSystem) *IO {
-	return &IO{fs: fs}
+func NewIO(fs *OSFileSystem, paths *PathMapper) *IO {
+	return &IO{fs: fs, paths: paths}
 }
 
 // SetupFSRoot will validate that a directory exists with the value of path.

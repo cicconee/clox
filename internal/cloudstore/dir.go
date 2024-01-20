@@ -60,7 +60,7 @@ func NewDirService(c DirServiceConfig) *DirService {
 	}
 
 	if c.IO == nil {
-		c.IO = NewIO(&OSFileSystem{})
+		c.IO = NewIO(&OSFileSystem{}, NewPathMapper(c.Path))
 	}
 
 	if c.Log == nil {
