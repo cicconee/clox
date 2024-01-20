@@ -71,3 +71,22 @@ func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d DirSearch) (strin
 
 	return directoryID, nil
 }
+
+// GetDir returns the name based path to the directory (id). The path will not
+// contain a trailing slash unless it is the users root path. Users root path
+// will be returned as "/".
+func (pm *PathMapper) GetDir(ctx context.Context, q *Query, id string) (string, error) {
+	namePath, err := q.SelectDirectoryPath(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	// Ignore the "root" level.
+	userPath := strings.Join(namePath, "/")
+	userPath = strings.TrimPrefix(userPath, "root")
+	if userPath == "" {
+		userPath = "/"
+	}
+
+	return userPath, nil
+}
