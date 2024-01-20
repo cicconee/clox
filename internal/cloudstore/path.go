@@ -90,3 +90,17 @@ func (pm *PathMapper) GetDir(ctx context.Context, q *Query, id string) (string, 
 
 	return userPath, nil
 }
+
+// GetFile returns the name based path to the file.
+func (pm *PathMapper) GetFile(ctx context.Context, q *Query, dirID string, filename string) (string, error) {
+	dirPath, err := pm.GetDir(ctx, q, dirID)
+	if err != nil {
+		return "", err
+	}
+
+	if dirPath == "/" {
+		return dirPath + filename, nil
+	}
+
+	return dirPath + "/" + filename, nil
+}
