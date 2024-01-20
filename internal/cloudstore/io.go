@@ -115,17 +115,9 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		return DirIO{}, err
 	}
 
-	// Get the path the user will reference.
-	namePath, err := q.SelectDirectoryPath(ctx, d.ID)
+	userPath, err := io.paths.GetDir(ctx, q, d.ID)
 	if err != nil {
 		return DirIO{}, err
-	}
-
-	// Ignore the "root" level.
-	userPath := strings.Join(namePath, "/")
-	userPath = strings.TrimPrefix(userPath, "root")
-	if userPath == "" {
-		userPath = "/"
 	}
 
 	// Ensure writing the directory to the file system is the last operation.
