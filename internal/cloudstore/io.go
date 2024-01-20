@@ -204,12 +204,10 @@ func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error
 		return FileIO{}, err
 	}
 
-	// Construct the full file system path of the file.
-	dirIDPath, err := q.SelectDirectoryFSPath(ctx, f.DirectoryID)
+	fsPath, err := io.paths.GetFileFS(ctx, q, f.DirectoryID, f.ID)
 	if err != nil {
 		return FileIO{}, err
 	}
-	fsPath := fmt.Sprintf("%s/%s/%s", f.FSDir, strings.Join(dirIDPath, "/"), f.ID)
 
 	// Create the file and set the file permissions on the file system.
 	dst, err := io.fs.Create(fsPath, f.FSPerm)

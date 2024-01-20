@@ -115,3 +115,13 @@ func (pm *PathMapper) GetDirFS(ctx context.Context, q *Query, id string) (string
 
 	return fmt.Sprintf("%s/%s", pm.root, strings.Join(idPath, "/")), nil
 }
+
+// GetFileFS returns the file system path to the file.
+func (pm *PathMapper) GetFileFS(ctx context.Context, q *Query, dirID string, fileID string) (string, error) {
+	dirIDPath, err := q.SelectDirectoryFSPath(ctx, dirID)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/%s/%s", pm.root, strings.Join(dirIDPath, "/"), fileID), nil
+}
