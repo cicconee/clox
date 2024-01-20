@@ -202,17 +202,9 @@ func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error
 		return FileIO{}, err
 	}
 
-	// Construct the path the user will reference.
-	dirNamePath, err := q.SelectDirectoryPath(ctx, f.DirectoryID)
+	userPath, err := io.paths.GetFile(ctx, q, f.DirectoryID, f.Header.Filename)
 	if err != nil {
 		return FileIO{}, err
-	}
-	userPath := strings.Join(dirNamePath, "/")
-	userPath = strings.TrimPrefix(userPath, "root")
-	if userPath == "" {
-		userPath = "/" + f.Header.Filename
-	} else {
-		userPath += "/" + f.Header.Filename
 	}
 
 	// Construct the full file system path of the file.
