@@ -23,6 +23,12 @@ func NewPathMapper(root string) *PathMapper {
 	return &PathMapper{root: root}
 }
 
+// Root returns the root storage path. All paths will be children of
+// this path.
+func (pm *PathMapper) Root() string {
+	return pm.root
+}
+
 // DirSearch are the parameters for finding a directory ID based on the
 // Path, that belongs to a specific user (UserID), under their root
 // directory (RootID).
