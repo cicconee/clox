@@ -119,31 +119,7 @@ func (io *IO) RemoveFS(fsPath string) error {
 	return io.fs.Remove(fsPath)
 }
 
-type FileIO struct {
-	ID          string
-	UserID      string
-	DirectoryID string
-	Name        string
-	UploadedAt  time.Time
-	FSPath      string
-	UserPath    string
-	Size        int64
-}
-
-// fileInfo returns this FileIO as a FileInfo.
-func (f *FileIO) fileInfo() FileInfo {
-	return FileInfo{
-		ID:          f.ID,
-		OwnerID:     f.UserID,
-		DirectoryID: f.DirectoryID,
-		Name:        f.Name,
-		Path:        f.UserPath,
-		Size:        f.Size,
-		UploadedAt:  f.UploadedAt.UTC(),
-		FSPath:      f.FSPath,
-	}
-}
-
+// NewFileIO is the parameters when creating a new file.
 type NewFileIO struct {
 	ID          string
 	UserID      string
