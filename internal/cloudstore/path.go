@@ -29,10 +29,10 @@ func (pm *PathMapper) Root() string {
 	return pm.root
 }
 
-// DirSearch are the parameters for finding a directory ID based on the
-// Path, that belongs to a specific user (UserID), under their root
+// PathSearch is the parameters for finding a directory or file ID based
+// on the Path, that belongs to a specific user (UserID), under their root
 // directory (RootID).
-type DirSearch struct {
+type PathSearch struct {
 	UserID string
 	RootID string
 	Path   string
@@ -44,7 +44,7 @@ type DirSearch struct {
 //
 // The directory must belong to the user (userID) and live under their
 // root directory (rootID).
-func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d DirSearch) (string, error) {
+func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d PathSearch) (string, error) {
 	fp := filepath.Clean(d.Path)
 	var p string
 	if fp == "." || fp == "/" {
@@ -82,7 +82,7 @@ func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d DirSearch) (strin
 //
 // All directories and files in the path must belong to the user and live
 // within the users root directory on the server.
-func (pm *PathMapper) FindFile(ctx context.Context, q *Query, s DirSearch) (string, error) {
+func (pm *PathMapper) FindFile(ctx context.Context, q *Query, s PathSearch) (string, error) {
 	dirs, file := filepath.Split(s.Path)
 	if file == "" {
 		return "", app.Wrap(app.WrapParams{
@@ -92,7 +92,7 @@ func (pm *PathMapper) FindFile(ctx context.Context, q *Query, s DirSearch) (stri
 		})
 	}
 
-	directoryID, err := pm.FindDir(ctx, q, DirSearch{
+	directoryID, err := pm.FindDir(ctx, q, PathSearch{
 		UserID: s.UserID,
 		RootID: s.RootID,
 		Path:   dirs,

@@ -112,7 +112,7 @@ func (s *DirService) NewUser(ctx context.Context, userID string) (Dir, error) {
 // The directory ID and name on the file system will be a randomly generated UUID.
 func (s *DirService) NewPath(ctx context.Context, userID string, name string, path string) (Dir, error) {
 	return s.new(ctx, userID, name, func(rootID string) (string, error) {
-		return s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
+		return s.pathMap.FindDir(ctx, s.store.Query, PathSearch{
 			UserID: userID,
 			RootID: rootID,
 			Path:   path,

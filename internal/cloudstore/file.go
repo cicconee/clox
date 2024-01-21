@@ -173,7 +173,7 @@ func (s *FileService) SaveBatch(ctx context.Context, userID string, directoryID 
 // The file ID and name on the file system will be a randomly generated UUID.
 func (s *FileService) SaveBatchPath(ctx context.Context, userID string, path string, fileHeaders []*multipart.FileHeader) ([]BatchSave, error) {
 	return s.saveBatch(ctx, userID, fileHeaders, func(r string) (string, error) {
-		return s.pathMap.FindDir(ctx, s.store.Query, DirSearch{
+		return s.pathMap.FindDir(ctx, s.store.Query, PathSearch{
 			UserID: userID,
 			RootID: r,
 			Path:   path,
