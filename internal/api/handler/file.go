@@ -29,6 +29,7 @@ func NewFile(files *cloudstore.FileService, log *log.Logger) *File {
 // in JSON format.
 type uploadFileResponse struct {
 	ID          string    `json:"id"`
+	OwnerID     string    `json:"owner_id"`
 	DirectoryID string    `json:"directory_id"`
 	Name        string    `json:"file_name"`
 	Path        string    `json:"file_path"`
@@ -67,6 +68,7 @@ func marshalUploadResponse(r []cloudstore.BatchSave) ([]byte, error) {
 		} else {
 			uploads = append(uploads, uploadFileResponse{
 				ID:          b.ID,
+				OwnerID:     b.OwnerID,
 				DirectoryID: b.DirectoryID,
 				Name:        b.Name,
 				Path:        b.Path,
