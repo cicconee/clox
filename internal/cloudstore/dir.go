@@ -94,11 +94,13 @@ func (s *DirService) SetupRoot() error {
 type Dir struct {
 	ID        string
 	Owner     string
+	ParentID  string
 	Name      string
 	Path      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	LastWrite time.Time
+	fsPath    string
 }
 
 // NewUser creates a new root directory for a user. All sub directories will be
