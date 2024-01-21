@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -87,55 +89,9 @@ func marshalUploadResponse(r []cloudstore.BatchSave) ([]byte, error) {
 // the request context, use auth.SetUserIDContext.
 func (f *File) Upload() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserIDContext(r.Context())
-		directoryID := chi.URLParam(r, "id")
-
-		if err := r.ParseMultipartForm(10 << 20); err != nil {
-			if errors.Is(err, http.ErrNotMultipart) {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("invalid Content-Type header: %w", err),
-					SafeMessage: "Request Content-Type must be multipart/form-data for file uploads",
-					StatusCode:  http.StatusBadRequest,
-				})
-			} else if errors.Is(err, http.ErrMissingBoundary) {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("request Content-Type=multipar/formdata missing boundary: %w", err),
-					SafeMessage: "Request header Content-Type=multipart/form-data must include a boundary",
-					StatusCode:  http.StatusBadRequest,
-				})
-			} else {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("malformed request: %w", err),
-					SafeMessage: "Malformed request",
-					StatusCode:  http.StatusBadRequest,
-				})
-			}
-
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] %v\n", err)
-			return
-		}
-
-		formdata := r.MultipartForm
-		files := formdata.File["file_uploads"]
-
-		result, err := f.files.SaveBatch(r.Context(), userID, directoryID, files)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] [%s %s] Failed to save files: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		resp, err := marshalUploadResponse(result)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		f.upload(w, r, func(ctx context.Context, userID string, fileHeaders []*multipart.FileHeader) ([]cloudstore.BatchSave, error) {
+			return f.files.SaveBatch(ctx, userID, chi.URLParam(r, "id"), fileHeaders)
+		})
 	}
 }
 
@@ -147,56 +103,68 @@ func (f *File) Upload() http.HandlerFunc {
 // the request context, use auth.SetUserIDContext.
 func (f *File) UploadPath() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserIDContext(r.Context())
-		path := r.URL.Query().Get("path")
-
-		if err := r.ParseMultipartForm(10 << 20); err != nil {
-			if errors.Is(err, http.ErrNotMultipart) {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("invalid Content-Type header: %w", err),
-					SafeMessage: "Request Content-Type must be multipart/form-data for file uploads",
-					StatusCode:  http.StatusBadRequest,
-				})
-			} else if errors.Is(err, http.ErrMissingBoundary) {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("request Content-Type=multipar/formdata missing boundary: %w", err),
-					SafeMessage: "Request header Content-Type=multipart/form-data must include a boundary",
-					StatusCode:  http.StatusBadRequest,
-				})
-			} else {
-				err = app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("malformed request: %w", err),
-					SafeMessage: "Malformed request",
-					StatusCode:  http.StatusBadRequest,
-				})
-			}
-
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] %v\n", err)
-			return
-		}
-
-		formdata := r.MultipartForm
-		files := formdata.File["file_uploads"]
-
-		result, err := f.files.SaveBatchPath(r.Context(), userID, path, files)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] [%s %s?path=%s] Failed to save files: %v\n", r.Method, r.URL.Path, path, err)
-			return
-		}
-
-		resp, err := marshalUploadResponse(result)
-		if err != nil {
-			app.WriteJSONError(w, err)
-			f.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		f.upload(w, r, func(ctx context.Context, userID string, fileHeaders []*multipart.FileHeader) ([]cloudstore.BatchSave, error) {
+			return f.files.SaveBatchPath(ctx, userID, r.URL.Query().Get("path"), fileHeaders)
+		})
 	}
+}
+
+// saveBatchFunc is passed the user ID of the user making a http request to upload
+// files. All the files in []*multipart.FileHeader should be saved to the users storage
+// location on the server. The result of all the file write operations should be
+// returned as a []cloudstore.BatchSave.
+type saveBatchFunc func(ctx context.Context, userID string, fileHeaders []*multipart.FileHeader) ([]cloudstore.BatchSave, error)
+
+// upload is a modified http handler for uploading files. The saveBatchFunc is passed
+// the user ID of the user making the request and all the files they are uploading. The
+// function should save the files to the users storage location on the server and
+// return the result of all the write operations as a []cloudstore.BatchSave.
+func (f *File) upload(w http.ResponseWriter, r *http.Request, saveBatch saveBatchFunc) {
+	userID := auth.GetUserIDContext(r.Context())
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		if errors.Is(err, http.ErrNotMultipart) {
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("invalid Content-Type header: %w", err),
+				SafeMessage: "Request Content-Type must be multipart/form-data for file uploads",
+				StatusCode:  http.StatusBadRequest,
+			})
+		} else if errors.Is(err, http.ErrMissingBoundary) {
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("request Content-Type=multipar/formdata missing boundary: %w", err),
+				SafeMessage: "Request header Content-Type=multipart/form-data must include a boundary",
+				StatusCode:  http.StatusBadRequest,
+			})
+		} else {
+			err = app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("malformed request: %w", err),
+				SafeMessage: "Malformed request",
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+
+		app.WriteJSONError(w, err)
+		f.log.Printf("[ERROR] %v\n", err)
+		return
+	}
+
+	result, err := saveBatch(r.Context(), userID, r.MultipartForm.File["file_uploads"])
+	if err != nil {
+		app.WriteJSONError(w, err)
+		f.log.Printf("[ERROR] [%s %s] Failed to save files: %v\n", r.Method, r.URL.Path, err)
+		return
+	}
+
+	resp, err := marshalUploadResponse(result)
+	if err != nil {
+		app.WriteJSONError(w, err)
+		f.log.Printf("[ERROR] [%s %s] Failed marshalling response: %v\n", r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 // Download returns a http.HandlerFunc that handles downloading a file when the
