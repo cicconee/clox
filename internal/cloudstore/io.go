@@ -127,7 +127,6 @@ type NewFileIO struct {
 	DirectoryID string
 	UploadedAt  time.Time
 	Header      *multipart.FileHeader
-	FSDir       string
 	FSPerm      fs.FileMode
 }
 
@@ -188,7 +187,6 @@ func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileInfo, err
 type ReadFileInfoIO struct {
 	UserID string
 	FileID string
-	FSPath string
 }
 
 // FileInfo gets the information for a users file. The information is gathered

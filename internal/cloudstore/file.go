@@ -281,7 +281,6 @@ func (s *FileService) Info(ctx context.Context, userID string, fileID string) (F
 	file, err := s.io.ReadFileInfo(ctx, s.store.Query, ReadFileInfoIO{
 		UserID: userID,
 		FileID: fileID,
-		FSPath: s.path,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
