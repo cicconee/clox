@@ -237,11 +237,13 @@ func (s *DirService) write(ctx context.Context, userID string, name string, pare
 	return Dir{
 		ID:        dir.ID,
 		Owner:     dir.UserID,
+		ParentID:  dir.ParentID,
 		Name:      dir.Name,
 		Path:      dir.UserPath,
 		CreatedAt: dir.CreatedAt,
 		UpdatedAt: dir.UpdatedAt,
 		LastWrite: dir.LastWrite,
+		fsPath:    dir.FSPath,
 	}, nil
 }
 
