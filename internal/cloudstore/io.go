@@ -18,11 +18,13 @@ func NewIO(fs *OSFileSystem, paths *PathMapper) *IO {
 	return &IO{fs: fs, paths: paths}
 }
 
-// SetupFSRoot will validate that a directory exists with the value of path.
-// If it does not exist, it will be created.
+// SetupFSRoot will validate that the root storage directory exists. If it
+// does not exist, it will be created.
 //
 // This method should be called once before executing any other methods.
-func (io *IO) SetupFSRoot(path string, perm fs.FileMode) error {
+func (io *IO) SetupFSRoot(perm fs.FileMode) error {
+	path := io.paths.Root()
+
 	_, err := io.fs.Stat(path)
 	if err != nil {
 		if io.fs.IsNotExist(err) {

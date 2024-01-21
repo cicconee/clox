@@ -79,8 +79,8 @@ func NewDirService(c DirServiceConfig) *DirService {
 	}
 }
 
-// SetupRoot will validate that a directory exists with the value of path
-// in this DirService. If it does not exist, it will be created.
+// SetupRoot will validate that the root storage directory exists. If it
+// does not exist, it will be created.
 //
 // The directory created will have permissions 0700. Only the system user
 // that is running this application can read, write, and execute this
@@ -88,7 +88,7 @@ func NewDirService(c DirServiceConfig) *DirService {
 //
 // This method should be called once before executing any other DirService methods.
 func (s *DirService) SetupRoot() error {
-	return s.io.SetupFSRoot(s.path, 0700)
+	return s.io.SetupFSRoot(0700)
 }
 
 type Dir struct {
