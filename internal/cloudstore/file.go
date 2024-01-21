@@ -93,12 +93,13 @@ func NewFileService(c FileServiceConfig) *FileService {
 // FileInfo is the metadata for a file.
 type FileInfo struct {
 	ID          string
+	OwnerID     string
 	DirectoryID string
 	Name        string
 	Path        string
-	FSPath      string
 	Size        int64
 	UploadedAt  time.Time
+	FSPath      string
 }
 
 // BatchSave is the result of saving a file when the files are being

@@ -134,12 +134,13 @@ type FileIO struct {
 func (f *FileIO) fileInfo() FileInfo {
 	return FileInfo{
 		ID:          f.ID,
+		OwnerID:     f.UserID,
 		DirectoryID: f.DirectoryID,
 		Name:        f.Name,
 		Path:        f.UserPath,
-		FSPath:      f.FSPath,
 		Size:        f.Size,
 		UploadedAt:  f.UploadedAt.UTC(),
+		FSPath:      f.FSPath,
 	}
 }
 
