@@ -64,8 +64,8 @@ type NewDirIO struct {
 
 // NewDir writes a directory to the file system and persists its information
 // in the database. If the directory is a sub directory, all the ancesteral
-// paths are persisted. The directory is returned as a DirIO.
-func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
+// paths are persisted. The directory is returned as a Dir.
+func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (Dir, error) {
 	err := q.InsertDirectory(ctx, InsertDirectoryConfig{
 		ID:        d.ID,
 		UserID:    d.UserID,
@@ -74,12 +74,12 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 		CreatedAt: d.CreatedAt,
 	})
 	if err != nil {
-		return DirIO{}, err
+		return Dir{}, err
 	}
 
 	err = q.InsertSelfPath(ctx, d.ID)
 	if err != nil {
-		return DirIO{}, err
+		return Dir{}, err
 	}
 
 	if d.ParentID.Valid {
@@ -88,32 +88,34 @@ func (io *IO) NewDir(ctx context.Context, q *Query, d NewDirIO) (DirIO, error) {
 			ChildID:  d.ID,
 		})
 		if err != nil {
-			return DirIO{}, err
+			return Dir{}, err
 		}
 	}
 
 	fsPath, err := io.paths.GetDirFS(ctx, q, d.ID)
 	if err != nil {
-		return DirIO{}, err
+		return Dir{}, err
 	}
 
 	userPath, err := io.paths.GetDir(ctx, q, d.ID)
 	if err != nil {
-		return DirIO{}, err
+		return Dir{}, err
 	}
 
 	if err := io.fs.Mkdir(fsPath, d.FSPerm); err != nil {
-		return DirIO{}, fmt.Errorf("creating directory [%s]: %w", fsPath, err)
+		return Dir{}, fmt.Errorf("creating directory [%s]: %w", fsPath, err)
 	}
 
-	return DirIO{
+	return Dir{
 		ID:        d.ID,
-		UserID:    d.UserID,
-		Name:      d.Name,
+		Owner:     d.UserID,
 		ParentID:  d.ParentID.String,
-		CreatedAt: d.CreatedAt.UTC(),
-		FSPath:    fsPath,
-		UserPath:  userPath,
+		Name:      d.Name,
+		Path:      userPath,
+		CreatedAt: d.CreatedAt,
+		UpdatedAt: time.Time{},
+		LastWrite: time.Time{},
+		fsPath:    fsPath,
 	}, nil
 }
 

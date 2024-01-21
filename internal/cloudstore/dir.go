@@ -186,7 +186,7 @@ func (s *DirService) new(ctx context.Context, userID string, name string, getPar
 // commiting the transaction fails, it will attempt to delete the directory from the file
 // system.
 func (s *DirService) write(ctx context.Context, userID string, name string, parentID string) (Dir, error) {
-	var dir DirIO
+	var dir Dir
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
 		dirIO, err := s.io.NewDir(ctx, NewQuery(tx), NewDirIO{
@@ -228,23 +228,13 @@ func (s *DirService) write(ctx context.Context, userID string, name string, pare
 		case errors.Is(err, ErrCommitTx):
 			// At this point the file was written to disk, so the application is in a inconsistent state.
 			// Remove the directory since the information failed to be commited to the database.
-			go s.Remove(ctx, dir.FSPath)
+			go s.Remove(ctx, dir.fsPath)
 		}
 
 		return Dir{}, err
 	}
 
-	return Dir{
-		ID:        dir.ID,
-		Owner:     dir.UserID,
-		ParentID:  dir.ParentID,
-		Name:      dir.Name,
-		Path:      dir.UserPath,
-		CreatedAt: dir.CreatedAt,
-		UpdatedAt: dir.UpdatedAt,
-		LastWrite: dir.LastWrite,
-		fsPath:    dir.FSPath,
-	}, nil
+	return dir, nil
 }
 
 // Remove accepts the path to a directory and removes it from the file system.
