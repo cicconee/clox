@@ -155,11 +155,11 @@ type NewFileIO struct {
 }
 
 // NewFile writes a file under a specified directory on the file system and
-// persists its information to the database. The file is returned as a FileIO.
-func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error) {
+// persists its information to the database. The file is returned as a FileInfo.
+func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileInfo, error) {
 	file, err := f.Header.Open()
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	err = q.InsertFile(ctx, InsertFileConfig{
@@ -170,41 +170,41 @@ func (io *IO) NewFile(ctx context.Context, q *Query, f NewFileIO) (FileIO, error
 		UploadedAt:  time.Now().UTC(),
 	})
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	userPath, err := io.paths.GetFile(ctx, q, f.DirectoryID, f.Header.Filename)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	fsPath, err := io.paths.GetFileFS(ctx, q, f.DirectoryID, f.ID)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	// Create the file and set the file permissions on the file system.
 	dst, err := io.fs.Create(fsPath, f.FSPerm)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	// Write the file content to the file on the file system.
 	_, err = io.fs.Copy(dst, file)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 	dst.Close()
 
-	return FileIO{
+	return FileInfo{
 		ID:          f.ID,
-		UserID:      f.UserID,
+		OwnerID:     f.UserID,
 		DirectoryID: f.DirectoryID,
 		Name:        f.Header.Filename,
+		Path:        userPath,
+		Size:        f.Header.Size,
 		UploadedAt:  f.UploadedAt.UTC(),
 		FSPath:      fsPath,
-		UserPath:    userPath,
-		Size:        f.Header.Size,
 	}, nil
 }
 

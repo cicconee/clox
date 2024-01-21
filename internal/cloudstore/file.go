@@ -232,7 +232,7 @@ func (s *FileService) saveBatch(ctx context.Context, userID string, fileHeaders 
 // The FileInfo returned will always have its Name and Size fields set even if there is
 // an error.
 func (s *FileService) write(ctx context.Context, userID string, directoryID string, header *multipart.FileHeader) (FileInfo, error) {
-	var file FileIO
+	var file FileInfo
 
 	err := s.store.Tx(ctx, func(tx *db.Tx) error {
 		fileIO, err := s.io.NewFile(ctx, NewQuery(tx), NewFileIO{
@@ -266,7 +266,7 @@ func (s *FileService) write(ctx context.Context, userID string, directoryID stri
 		return FileInfo{Name: header.Filename, Size: header.Size}, err
 	}
 
-	return file.fileInfo(), nil
+	return file, nil
 }
 
 // removeFS removes a file from the file system. If it fails it will be logged.
