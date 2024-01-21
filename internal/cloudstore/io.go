@@ -215,39 +215,39 @@ type ReadFileInfoIO struct {
 }
 
 // FileInfo gets the information for a users file. The information is gathered
-// from both the database and file system, and returns it as a FileIO.
+// from both the database and file system, and returns it as a FileInfo.
 //
 // The actual file content is not returned by this function.
-func (io *IO) ReadFileInfo(ctx context.Context, q *Query, f ReadFileInfoIO) (FileIO, error) {
+func (io *IO) ReadFileInfo(ctx context.Context, q *Query, f ReadFileInfoIO) (FileInfo, error) {
 	row, err := q.SelectFileByIDUser(ctx, f.FileID, f.UserID)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	userPath, err := io.paths.GetFile(ctx, q, row.DirectoryID, row.Name)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	fsPath, err := io.paths.GetFileFS(ctx, q, row.DirectoryID, row.ID)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
 	// Get the file size on the file system.
 	stat, err := io.fs.Stat(fsPath)
 	if err != nil {
-		return FileIO{}, err
+		return FileInfo{}, err
 	}
 
-	return FileIO{
+	return FileInfo{
 		ID:          row.ID,
-		UserID:      row.UserID,
+		OwnerID:     row.UserID,
 		DirectoryID: row.DirectoryID,
 		Name:        row.Name,
+		Path:        userPath,
+		Size:        stat.Size(),
 		UploadedAt:  row.UploadedAt.UTC(),
 		FSPath:      fsPath,
-		UserPath:    userPath,
-		Size:        stat.Size(),
 	}, nil
 }

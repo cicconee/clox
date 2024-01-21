@@ -296,5 +296,5 @@ func (s *FileService) Info(ctx context.Context, userID string, fileID string) (F
 		return FileInfo{}, err
 	}
 
-	return file.fileInfo(), nil
+	return file, nil
 }
