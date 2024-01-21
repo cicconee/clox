@@ -78,6 +78,45 @@ func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d DirSearch) (strin
 	return directoryID, nil
 }
 
+// FindFile parses a path to a file and returns its ID.
+//
+// All directories and files in the path must belong to the user and live
+// within the users root directory on the server.
+func (pm *PathMapper) FindFile(ctx context.Context, q *Query, s DirSearch) (string, error) {
+	dirs, file := filepath.Split(s.Path)
+	if file == "" {
+		return "", app.Wrap(app.WrapParams{
+			Err:         errors.New("undefined file name"),
+			SafeMessage: "Invalid file path",
+			StatusCode:  http.StatusBadRequest,
+		})
+	}
+
+	directoryID, err := pm.FindDir(ctx, q, DirSearch{
+		UserID: s.UserID,
+		RootID: s.RootID,
+		Path:   dirs,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	row, err := q.SelectFileByUserDirName(ctx, s.UserID, directoryID, file)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", app.Wrap(app.WrapParams{
+				Err:         fmt.Errorf("file %q does not exist [path: %s]", file, s.Path),
+				SafeMessage: fmt.Sprintf("File '%s' does not exist", file),
+				StatusCode:  http.StatusBadRequest,
+			})
+		}
+
+		return "", err
+	}
+
+	return row.ID, nil
+}
+
 // GetDir returns the name based path to the directory (id). The path will not
 // contain a trailing slash unless it is the users root path. Users root path
 // will be returned as "/".
