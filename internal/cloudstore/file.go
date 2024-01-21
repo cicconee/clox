@@ -241,7 +241,6 @@ func (s *FileService) write(ctx context.Context, userID string, directoryID stri
 			DirectoryID: directoryID,
 			UploadedAt:  time.Now().UTC(),
 			Header:      header,
-			FSDir:       s.path,
 			FSPerm:      0600,
 		})
 		if err != nil {
