@@ -39,18 +39,6 @@ func (io *IO) SetupFSRoot(path string, perm fs.FileMode) error {
 	return nil
 }
 
-type DirIO struct {
-	ID        string
-	UserID    string
-	Name      string
-	ParentID  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	LastWrite time.Time
-	FSPath    string
-	UserPath  string
-}
-
 // NewDirIO is the parameters when creating a new directory.
 type NewDirIO struct {
 	ID        string
