@@ -53,29 +53,13 @@ type DirIO struct {
 
 // NewDirIO is the parameters when creating a new directory.
 type NewDirIO struct {
-	// The directory ID. ID will also be the file name on the file system.
-	ID string
-
-	// The ID of the user the directory belongs to.
-	UserID string
-
-	// The name of the directory. This is the name the user will use when
-	// interacting with directories via paths.
-	Name string
-
-	// The ID of the parent directory. If creating a root directory for a
-	// user, ParentID will be empty. All other directories will need a
-	// ParentID.
-	ParentID sql.NullString
-
-	// The time the directory was created. This should be a UTC time.
+	ID        string
+	UserID    string
+	Name      string
+	ParentID  sql.NullString
 	CreatedAt time.Time
-
-	// The path to the central storage directory on the file system.
-	FSDir string
-
-	// The directory permissions on the file system.
-	FSPerm fs.FileMode
+	FSDir     string
+	FSPerm    fs.FileMode
 }
 
 // NewDir writes a directory to the file system and persists its information
