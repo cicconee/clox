@@ -64,7 +64,6 @@ func Run(logger *log.Logger) error {
 
 	// Configure cloudstore services.
 	dirs := cloudstore.NewDirService(cloudstore.DirServiceConfig{
-		Path:    config.FileStorePath,
 		Store:   cloudStorage,
 		IO:      cloudIO,
 		Log:     logger,

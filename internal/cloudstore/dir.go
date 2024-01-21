@@ -19,7 +19,6 @@ import (
 //
 // DirService should be created using the NewDirService function.
 type DirService struct {
-	path    string
 	store   *Store
 	io      *IO
 	log     *log.Logger
@@ -28,7 +27,6 @@ type DirService struct {
 
 // DirServiceConfig is the DirService configuration.
 type DirServiceConfig struct {
-	Path    string
 	Store   *Store
 	IO      *IO
 	Log     *log.Logger
@@ -37,45 +35,36 @@ type DirServiceConfig struct {
 
 // NewDirService creates a new DirService.
 //
-// Path should be the path to the root storage directory on the
-// file system. This is the directory that will store all
-// directories for Clox users.
+// Store and PathMap must be set otherwise it will panic.
 //
-// Path and Store must be set otherwise it will panic.
-//
-// If IO is not set, it will default to NewIO(&OSFileSystem{}). If
-// initializing multiple cloudstore services, it is recommended to
+// If IO is not set, it will default to NewIO(&OSFileSystem{}, c.PathMap).
+// If initializing multiple cloudstore services, it is recommended to
 // use the same IO with all services. This will avoid initializing
 // multiple IO's.
 //
 // If Log is not set, it will default to log.Default().
-//
-// If PathMap is not set, it will default to NewPathMapper().
 func NewDirService(c DirServiceConfig) *DirService {
-	if c.Path == "" {
-		panic("cloudstore.NewDirService: cannot create DirService with empty Path")
-	}
 	if c.Store == nil {
 		panic("cloudstore.NewDirService: cannot create DirService with nil Store")
 	}
 
+	if c.PathMap == nil {
+		panic("cloudstore.NewDirService: cannot create DirService with nil PathMap")
+	}
+
 	if c.IO == nil {
-		c.IO = NewIO(&OSFileSystem{}, NewPathMapper(c.Path))
+		c.IO = NewIO(&OSFileSystem{}, c.PathMap)
 	}
 
 	if c.Log == nil {
 		c.Log = log.Default()
 	}
 
-	if c.PathMap == nil {
-		c.PathMap = NewPathMapper(c.Path)
-	}
-
 	return &DirService{
-		path:  c.Path,
-		store: c.Store,
-		io:    c.IO,
-		log:   c.Log,
+		store:   c.Store,
+		io:      c.IO,
+		log:     c.Log,
+		pathMap: c.PathMap,
 	}
 }
 

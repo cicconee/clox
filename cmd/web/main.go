@@ -83,7 +83,6 @@ func Run(logger *log.Logger) error {
 		Users:        user.NewService(user.NewRepo(database)),
 		Tokens:       token.NewService(jwts, cache, token.NewRepo(database)),
 		CloudDirs: cloudstore.NewDirService(cloudstore.DirServiceConfig{
-			Path:    config.FileStorePath,
 			Store:   cloudstore.NewStore(database),
 			IO:      cloudstore.NewIO(&cloudstore.OSFileSystem{}, cloudPaths),
 			Log:     logger,
