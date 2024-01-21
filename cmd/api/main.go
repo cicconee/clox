@@ -71,7 +71,6 @@ func Run(logger *log.Logger) error {
 	})
 
 	files := cloudstore.NewFileService(cloudstore.FileServiceConfig{
-		Path:         config.FileStorePath,
 		Store:        cloudStorage,
 		IO:           cloudIO,
 		Log:          logger,

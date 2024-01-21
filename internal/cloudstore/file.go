@@ -21,7 +21,6 @@ import (
 // FileService should be created using the NewFileService
 // function.
 type FileService struct {
-	path         string
 	store        *Store
 	io           *IO
 	log          *log.Logger
@@ -31,7 +30,6 @@ type FileService struct {
 
 // FileServiceConfig is the FileService configuration.
 type FileServiceConfig struct {
-	Path         string
 	Store        *Store
 	IO           *IO
 	Log          *log.Logger
@@ -41,27 +39,22 @@ type FileServiceConfig struct {
 
 // NewFileService creates a new FileService.
 //
-// Path should be the path to the root storage directory on the
-// file system. This is the directory that will store all
-// directories for Clox users.
-//
-// Path, Store and ValidateUserDir must be set otherwise it will
+// Store, PathMap, and ValidateUserDir must be set otherwise it will
 // panic.
 //
-// If IO is not set, it will default to NewIO(&OSFileSystem{}). If
-// initializing multiple cloudstore services, it is recommended to
+// If IO is not set, it will default to NewIO(&OSFileSystem{}, c.PathMap).
+// If initializing multiple cloudstore services, it is recommended to
 // use the same IO with all services. This will avoid initializing
 // multiple IO's.
 //
-// If PathMap is not set, it will default to NewPathMapper().
-//
 // If Log is not set, it will default to log.Default().
 func NewFileService(c FileServiceConfig) *FileService {
-	if c.Path == "" {
-		panic("cloudstore.NewFileService: cannot create FileService with empty Path")
-	}
 	if c.Store == nil {
 		panic("cloudstore.NewFileService: cannot create FileService with nil Store")
+	}
+
+	if c.PathMap == nil {
+		panic("cloudstore.NewFileService: cannot create FileService with nil PathMap")
 	}
 
 	if c.ValidateUser == nil {
@@ -69,19 +62,14 @@ func NewFileService(c FileServiceConfig) *FileService {
 	}
 
 	if c.IO == nil {
-		c.IO = NewIO(&OSFileSystem{}, NewPathMapper(c.Path))
+		c.IO = NewIO(&OSFileSystem{}, c.PathMap)
 	}
 
 	if c.Log == nil {
 		c.Log = log.Default()
 	}
 
-	if c.PathMap == nil {
-		c.PathMap = NewPathMapper(c.Path)
-	}
-
 	return &FileService{
-		path:         c.Path,
 		store:        c.Store,
 		io:           c.IO,
 		log:          c.Log,
