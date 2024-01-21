@@ -46,6 +46,7 @@ func parseNewDirRequest(r *http.Request) (newDirRequest, error) {
 type newDirResponse struct {
 	ID        string    `json:"id"`
 	OwnerID   string    `json:"owner_id"`
+	ParentID  string    `json:"parent_id"`
 	DirName   string    `json:"directory_name"`
 	DirPath   string    `json:"directory_path"`
 	CreatedAt time.Time `json:"created_at"`
@@ -59,6 +60,7 @@ func marshalNewDirResponse(dir cloudstore.Dir) ([]byte, error) {
 	return json.Marshal(&newDirResponse{
 		ID:        dir.ID,
 		OwnerID:   dir.Owner,
+		ParentID:  dir.ParentID,
 		DirName:   dir.Name,
 		DirPath:   dir.Path,
 		CreatedAt: dir.CreatedAt,
