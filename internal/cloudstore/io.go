@@ -48,7 +48,6 @@ type NewDirIO struct {
 	Name      string
 	ParentID  sql.NullString
 	CreatedAt time.Time
-	FSDir     string
 	FSPerm    fs.FileMode
 }
 

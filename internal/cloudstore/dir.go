@@ -195,7 +195,6 @@ func (s *DirService) write(ctx context.Context, userID string, name string, pare
 			Name:      name,
 			ParentID:  sql.NullString{String: parentID, Valid: parentID != ""},
 			CreatedAt: time.Now().UTC(),
-			FSDir:     s.path,
 			FSPerm:    0700,
 		})
 		if err != nil {
