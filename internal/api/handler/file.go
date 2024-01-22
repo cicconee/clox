@@ -191,3 +191,26 @@ func (f *File) Download() http.HandlerFunc {
 		http.ServeFile(w, r, file.FSPath)
 	}
 }
+
+// DownloadPath returns a http.HandlerFunc that handles downloading a file when
+// the file path is specified as a URL query parameter with the key "path".
+//
+// DownloadPath expects the user ID to be in the request context. To set the user
+// ID in the request context, use auth.SetUserIDContext.
+func (f *File) DownloadPath() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := auth.GetUserIDContext(r.Context())
+		path := r.URL.Query().Get("path")
+
+		file, err := f.files.InfoPath(r.Context(), userID, path)
+		if err != nil {
+			app.WriteJSONError(w, err)
+			f.log.Printf("[ERROR] [%s %s] Failed getting file info: %v\n", r.Method, r.URL.Path, err)
+			return
+		}
+
+		w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
+		w.Header().Set("Content-Type", "application/octet-stream")
+		http.ServeFile(w, r, file.FSPath)
+	}
+}
