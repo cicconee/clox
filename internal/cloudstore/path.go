@@ -86,8 +86,8 @@ func (pm *PathMapper) FindFile(ctx context.Context, q *Query, s PathSearch) (str
 	dirs, file := filepath.Split(s.Path)
 	if file == "" {
 		return "", app.Wrap(app.WrapParams{
-			Err:         errors.New("undefined file name"),
-			SafeMessage: "Invalid file path",
+			Err:         fmt.Errorf("file name undefined [path: %s]", s.Path),
+			SafeMessage: "Not a valid file path",
 			StatusCode:  http.StatusBadRequest,
 		})
 	}
