@@ -284,3 +284,22 @@ func (s *FileService) Info(ctx context.Context, userID string, fileID string) (F
 
 	return file, nil
 }
+
+// InfoPath gets the information for a users file at the provided path.
+func (s *FileService) InfoPath(ctx context.Context, userID string, path string) (FileInfo, error) {
+	root, err := s.validateUser(ctx, userID)
+	if err != nil {
+		return FileInfo{}, err
+	}
+
+	fileID, err := s.pathMap.FindFile(ctx, s.store.Query, PathSearch{
+		UserID: userID,
+		RootID: root.ID,
+		Path:   path,
+	})
+	if err != nil {
+		return FileInfo{}, err
+	}
+
+	return s.Info(ctx, userID, fileID)
+}
