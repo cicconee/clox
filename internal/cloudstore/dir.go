@@ -254,7 +254,7 @@ func (s *DirService) ValidateUser(ctx context.Context, userID string) (Dir, erro
 				return Dir{}, app.Wrap(app.WrapParams{
 					Err:         fmt.Errorf("creating users root directory: %w", err),
 					SafeMessage: "There is a problem with your accounts root storage. Please contact us.",
-					StatusCode:  http.StatusBadRequest,
+					StatusCode:  http.StatusInternalServerError,
 				})
 			}
 
