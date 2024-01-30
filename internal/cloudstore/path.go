@@ -63,8 +63,8 @@ func (pm *PathMapper) FindDir(ctx context.Context, q *Query, d PathSearch) (stri
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return "", app.Wrap(app.WrapParams{
-					Err:         fmt.Errorf("directory %q does not exist [path: %s]", pName, d.Path),
-					SafeMessage: fmt.Sprintf("Directory %q does not exist", strings.Join(paths[1:i+1], "/")),
+					Err:         fmt.Errorf("directory '%s' does not exist [path: %s]", pName, d.Path),
+					SafeMessage: fmt.Sprintf("Directory '%s' does not exist", strings.Join(paths[1:i+1], "/")),
 					StatusCode:  http.StatusBadRequest,
 				})
 			}
