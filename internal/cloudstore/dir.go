@@ -198,13 +198,13 @@ func (s *DirService) write(ctx context.Context, userID string, name string, pare
 		case errors.Is(err, ErrForeignKeyParentID):
 			err = app.Wrap(app.WrapParams{
 				Err:         fmt.Errorf("parent directory does not exist [parent_id: %s]: %w", parentID, err),
-				SafeMessage: fmt.Sprintf("Directory %q does not exist", parentID),
+				SafeMessage: fmt.Sprintf("Directory '%s' does not exist", parentID),
 				StatusCode:  http.StatusBadRequest,
 			})
 		case errors.Is(err, ErrUniqueNameParentID):
 			err = app.Wrap(app.WrapParams{
 				Err:         fmt.Errorf("directory name not available [name: %s, parent_id: %s]: %w", name, parentID, err),
-				SafeMessage: fmt.Sprintf("Directory %q already exists", name),
+				SafeMessage: fmt.Sprintf("Directory '%s' already exists", name),
 				StatusCode:  http.StatusBadRequest,
 			})
 		case errors.Is(err, ErrSyntaxParentID):
